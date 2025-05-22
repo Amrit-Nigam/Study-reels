@@ -14,16 +14,15 @@ interface DialogueLine {
   text: string;
 }
 
-const COQUI_VOICE_OPTIONS: VoiceOption[] = [
-  { id: 'female-1', name: 'Female Voice 1' },
-  { id: 'male-1', name: 'Male Voice 1' },
-  { id: 'female-2', name: 'Female Voice 2' },
-  { id: 'male-2', name: 'Male Voice 2' }
+const AZURE_VOICE_OPTIONS: VoiceOption[] = [
+  { id: 'female-1', name: 'Jenny (Female)' },
+  { id: 'female-2', name: 'Aria (Female)' },
+  { id: 'male-1', name: 'Guy (Male)' },
+  { id: 'male-2', name: 'Davis (Male)' }
 ];
 
-export const VideoGenerator = () => {
-  const [topic, setTopic] = useState('');  const [voice1, setVoice1] = useState(COQUI_VOICE_OPTIONS[0].id);
-  const [voice2, setVoice2] = useState(COQUI_VOICE_OPTIONS[1].id);const [gameplayVideo, setGameplayVideo] = useState<File | null>(null);
+export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  const [voice1, setVoice1] = useState(AZURE_VOICE_OPTIONS[0].id);
+  const [voice2, setVoice2] = useState(AZURE_VOICE_OPTIONS[2].id);const [gameplayVideo, setGameplayVideo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [dialogue, setDialogue] = useState<DialogueLine[]>([]);
@@ -181,8 +180,7 @@ export const VideoGenerator = () => {
                 value={voice1}
                 onChange={handleVoice1Change}
                 className="w-full p-2 border rounded-md"
-                disabled={loading}
-              >                {COQUI_VOICE_OPTIONS.filter((v: VoiceOption) => v.name.includes('Female')).map((voice: VoiceOption) => (
+                disabled={loading}              >                {AZURE_VOICE_OPTIONS.filter((v: VoiceOption) => v.name.includes('Female')).map((voice: VoiceOption) => (
                   <option key={voice.id} value={voice.id}>
                     {voice.name}
                   </option>
@@ -200,7 +198,7 @@ export const VideoGenerator = () => {
                 className="w-full p-2 border rounded-md"
                 disabled={loading}
               >
-                {COQUI_VOICE_OPTIONS.filter(v => v.name.includes('Male')).map((voice) => (
+                {AZURE_VOICE_OPTIONS.filter((v: VoiceOption) => v.name.includes('Male')).map((voice: VoiceOption) => (
                   <option key={voice.id} value={voice.id}>
                     {voice.name}
                   </option>
@@ -257,10 +255,9 @@ export const VideoGenerator = () => {
         return (
           <div className="space-y-6">
             <div className="p-4 border rounded-md">
-              <h3 className="font-medium mb-2">Summary:</h3>
-              <p><span className="font-semibold">Topic:</span> {topic}</p>
-              <p><span className="font-semibold">Voice for Nina:</span> {COQUI_VOICE_OPTIONS.find(v => v.id === voice1)?.name}</p>
-              <p><span className="font-semibold">Voice for Jay:</span> {COQUI_VOICE_OPTIONS.find(v => v.id === voice2)?.name}</p>
+              <h3 className="font-medium mb-2">Summary:</h3>              <p><span className="font-semibold">Topic:</span> {topic}</p>
+              <p><span className="font-semibold">Voice for Nina:</span> {AZURE_VOICE_OPTIONS.find((v: VoiceOption) => v.id === voice1)?.name}</p>
+              <p><span className="font-semibold">Voice for Jay:</span> {AZURE_VOICE_OPTIONS.find((v: VoiceOption) => v.id === voice2)?.name}</p>
               <p><span className="font-semibold">Gameplay video:</span> {gameplayVideo?.name}</p>
             </div>
             
