@@ -1,36 +1,59 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getAvailableVoices, VoiceOption } from '@/services/voiceService';
 
 // Define types for our components
-interface VoiceOption {
-  id: string;
-  name: string;
-}
-
 interface DialogueLine {
   speaker: string;
   text: string;
 }
 
-const MOZILLA_VOICE_OPTIONS: VoiceOption[] = [
-  { id: 'female-1', name: 'Female Voice 1' },
-  { id: 'female-2', name: 'Female Voice 2' },
-  { id: 'male-1', name: 'Male Voice 1' },
-  { id: 'male-2', name: 'Male Voice 2' }
+// Default voice options as fallback
+const DEFAULT_VOICE_OPTIONS: VoiceOption[] = [
+  { id: 'female-1', name: 'Female Voice 1', description: 'Default female voice', gender: 'female', speedFactor: 1, pitch: 0 },
+  { id: 'female-2', name: 'Female Voice 2', description: 'Alternative female voice', gender: 'female', speedFactor: 1, pitch: 0 },
+  { id: 'male-1', name: 'Male Voice 1', description: 'Default male voice', gender: 'male', speedFactor: 1, pitch: 0 },
+  { id: 'male-2', name: 'Male Voice 2', description: 'Alternative male voice', gender: 'male', speedFactor: 1, pitch: 0 },
 ];
 
 export const VideoGenerator = () => {  
   const [topic, setTopic] = useState('');  
-  const [voice1, setVoice1] = useState(MOZILLA_VOICE_OPTIONS[0].id);
-  const [voice2, setVoice2] = useState(MOZILLA_VOICE_OPTIONS[2].id);
+  const [voice1, setVoice1] = useState('female-1');
+  const [voice2, setVoice2] = useState('male-1');
+  const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>(DEFAULT_VOICE_OPTIONS);
   const [gameplayVideo, setGameplayVideo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [dialogue, setDialogue] = useState<DialogueLine[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
+  const [isVoiceApiAvailable, setIsVoiceApiAvailable] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Fetch available voices when component mounts
+  useEffect(() => {
+    async function loadVoices() {
+      try {
+        const voices = await getAvailableVoices();
+        if (voices && voices.length > 0) {
+          setVoiceOptions(voices);
+          setIsVoiceApiAvailable(true);
+          
+          // Set default voices - female for Nina, male for Jay
+          const defaultFemale = voices.find(v => v.gender === 'female')?.id || 'female-1';
+          const defaultMale = voices.find(v => v.gender === 'male')?.id || 'male-1';
+          setVoice1(defaultFemale);
+          setVoice2(defaultMale);
+        }
+      } catch (error) {
+        console.error('Failed to load voice options:', error);
+        toast.error('Failed to load voice options, using defaults');
+      }
+    }
+    
+    loadVoices();
+  }, []);
 
   const steps = [
     'Enter Topic',
@@ -170,8 +193,7 @@ export const VideoGenerator = () => {
             />
           </div>
         );
-      
-      case 1:
+        case 1:
         return (
           <div className="space-y-6">
             <div>
@@ -183,12 +205,20 @@ export const VideoGenerator = () => {
                 className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 disabled={loading}
               >
-                {MOZILLA_VOICE_OPTIONS.filter((v: VoiceOption) => v.name.includes('Female')).map((voice: VoiceOption) => (
-                  <option key={voice.id} value={voice.id}>
-                    {voice.name}
-                  </option>
-                ))}
+                {voiceOptions
+                  .filter((v: VoiceOption) => v.gender === 'female')
+                  .map((voice: VoiceOption) => (
+                    <option key={voice.id} value={voice.id}>
+                      {voice.name} - {voice.description}
+                    </option>
+                  ))
+                }
               </select>
+              {isVoiceApiAvailable && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Using enhanced FAL.ai voices for better quality
+                </p>
+              )}
             </div>
             
             <div>
@@ -200,13 +230,21 @@ export const VideoGenerator = () => {
                 className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 disabled={loading}
               >
-                {MOZILLA_VOICE_OPTIONS.filter((v: VoiceOption) => v.name.includes('Male')).map((voice: VoiceOption) => (
-                  <option key={voice.id} value={voice.id}>
-                    {voice.name}
-                  </option>
-                ))}
+                {voiceOptions
+                  .filter((v: VoiceOption) => v.gender === 'male')
+                  .map((voice: VoiceOption) => (
+                    <option key={voice.id} value={voice.id}>
+                      {voice.name} - {voice.description}
+                    </option>
+                  ))
+                }
               </select>
-            </div>            {dialogue.length > 0 && (
+              {isVoiceApiAvailable && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Using enhanced FAL.ai voices for better quality
+                </p>
+              )}
+            </div>{dialogue.length > 0 && (
               <div className="mt-6 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800/50">
                 <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-100">Generated Dialogue:</h3>
                 <div className="space-y-2">
@@ -254,11 +292,10 @@ export const VideoGenerator = () => {
       case 3:
         return (
           <div className="space-y-6">            <div className="p-5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800/50">
-              <h3 className="font-medium mb-3 text-gray-900 dark:text-gray-100">Summary:</h3>              
-              <div className="space-y-2">
+              <h3 className="font-medium mb-3 text-gray-900 dark:text-gray-100">Summary:</h3>                <div className="space-y-2">
                 <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Topic:</span> {topic}</p>
-                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Voice for Nina:</span> {MOZILLA_VOICE_OPTIONS.find((v: VoiceOption) => v.id === voice1)?.name}</p>
-                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Voice for Jay:</span> {MOZILLA_VOICE_OPTIONS.find((v: VoiceOption) => v.id === voice2)?.name}</p>
+                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Voice for Nina:</span> {voiceOptions.find((v: VoiceOption) => v.id === voice1)?.name}</p>
+                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Voice for Jay:</span> {voiceOptions.find((v: VoiceOption) => v.id === voice2)?.name}</p>
                 <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Gameplay video:</span> {gameplayVideo?.name}</p>
               </div>
             </div>
@@ -295,9 +332,8 @@ export const VideoGenerator = () => {
         <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
           Brainrot Video Generator
         </span>
-      </h1>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Powered by <span className="font-medium">Mozilla TTS</span> open-source voice technology
+      </h1>      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+        Powered by <span className="font-medium">FAL.ai</span> advanced voice technology
       </p>
       
       {/* Progress Indicator */}

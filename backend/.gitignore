@@ -10,6 +10,13 @@ lerna-debug.log*
 node_modules
 temp
 uploads
+
+#exe files for ffmpeg 
+ffmpeg.exe
+ffplay.exe
+ffprobe.exe 
+
+
 dist
 dist-ssr
 *.local

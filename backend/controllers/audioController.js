@@ -8,9 +8,17 @@ import fsExtra from 'fs-extra';
 import https from 'https';
 import { promisify } from 'util';
 import { pipeline as pipelineCallback } from 'stream';
+import { fal } from '@fal-ai/client';
 
 const pipeline = promisify(pipelineCallback);
 dotenv.config();
+
+// Configure fal.ai client if FAL_KEY is set
+if (process.env.FAL_KEY) {
+  fal.config({
+    credentials: process.env.FAL_KEY
+  });
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,6 +34,118 @@ function getFFmpegPath() {
   
   // Fallback to system PATH
   return 'ffmpeg';
+}
+
+// Helper function to generate audio using FAL.ai API
+async function generateFalAudio(text, speaker, voiceId) {
+  try {
+    if (!process.env.FAL_KEY) {
+      throw new Error('FAL_KEY environment variable not set');
+    }
+    
+    console.log(`Generating audio with FAL.ai for ${speaker} using voice ${voiceId}`);
+      // Map voice IDs to MiniMax voice settings with a wider variety
+    const voiceSettings = {
+      'female-1': {
+        voice_id: 'Lively_Girl',
+        speed: 1.2,
+        pitch: 2
+      },
+      'female-2': {
+        voice_id: 'Sweet_Girl_2',
+        speed: 1.15,
+        pitch: -1
+      },
+      'female-3': {
+        voice_id: 'Calm_Woman',
+        speed: 1.25,
+        pitch: 1
+      },
+      'female-4': {
+        voice_id: 'Abbess',
+        speed: 1.2,
+        pitch: 0
+      },
+      'male-1': {
+        voice_id: 'Deep_Voice_Man',
+        speed: 1.15,
+        pitch: -2
+      },
+      'male-2': {
+        voice_id: 'Casual_Guy',
+        speed: 1.2,
+        pitch: 0
+      },
+      'male-3': {
+        voice_id: 'Elegant_Man',
+        speed: 1.1,
+        pitch: 1
+      },
+      'male-4': {
+        voice_id: 'Imposing_Manner',
+        speed: 1.15,
+        pitch: -1
+      }
+    };
+      // Get voice settings based on voiceId or use default
+    const voiceSetting = voiceSettings[voiceId] || {
+      voice_id: speaker.toLowerCase().includes('nina') ? 'Lively_Girl' : 'Deep_Voice_Man',
+      speed: 1.2,
+      pitch: 0
+    };
+    
+    // Call the fal.ai API with voice settings
+    const result = await fal.subscribe("fal-ai/minimax/speech-02-turbo", {
+      input: {
+        text: text,
+        output_format: "hex",
+        voice_setting: {
+          voice_id: voiceSetting.voice_id,
+          speed: voiceSetting.speed,
+          pitch: voiceSetting.pitch,
+          vol: 1 // Default volume
+        }
+      },
+      logs: true,
+    });
+    
+    if (!result.data || !result.data.audio || !result.data.audio.url) {
+      throw new Error('Failed to get audio URL from FAL.ai API');
+    }
+    
+    console.log(`FAL.ai audio generated for ${speaker} with voice ${voiceSetting.voice_id}, duration: ${result.data.duration_ms}ms`);
+    return result.data.audio.url;
+  } catch (error) {
+    console.error(`Error generating FAL.ai audio: ${error.message}`);
+    throw error;
+  }
+}
+
+// Helper function to download audio from URL
+async function downloadAudio(url, outputPath) {
+  return new Promise((resolve, reject) => {
+    const fileStream = fs.createWriteStream(outputPath);
+    
+    https.get(url, (response) => {
+      if (response.statusCode !== 200) {
+        reject(new Error(`Failed to download audio: ${response.statusCode} ${response.statusMessage}`));
+        return;
+      }
+      
+      pipeline(response, fileStream)
+        .then(() => {
+          console.log(`Audio downloaded to ${outputPath}`);
+          resolve(outputPath);
+        })
+        .catch(err => {
+          console.error(`Error saving audio file: ${err}`);
+          reject(err);
+        });
+    }).on('error', (err) => {
+      console.error(`Error requesting audio: ${err}`);
+      reject(err);
+    });
+  });
 }
 
 // Helper function to convert from milliseconds to the correct format for SRT
@@ -61,96 +181,157 @@ export const generateAudio = async (req, res) => {
     }
     if (!fs.existsSync(modelsDir)) {
       fs.mkdirSync(modelsDir, { recursive: true });
-    }    // Process each line of dialogue
-    const audioFiles = [];    // Map voice IDs to Mozilla TTS voices
+    }
+    
+    // Process each line of dialogue
+    const audioFiles = [];
+      // Map voice IDs to Mozilla TTS voices
     // Mozilla TTS voice references: https://github.com/mozilla/TTS/wiki/Released-Models
     const voiceMap = {
       'female-1': { name: 'en/vctk_low/p225', language: 'en' },  // VCTK female voice 1
       'female-2': { name: 'en/vctk_low/p236', language: 'en' },  // VCTK female voice 2
+      'female-3': { name: 'en/vctk_low/p233', language: 'en' },  // Additional VCTK female voice
+      'female-4': { name: 'en/vctk_low/p237', language: 'en' },  // Additional VCTK female voice
       'male-1': { name: 'en/vctk_low/p270', language: 'en' },    // VCTK male voice 1
-      'male-2': { name: 'en/vctk_low/p330', language: 'en' }     // VCTK male voice 2
+      'male-2': { name: 'en/vctk_low/p330', language: 'en' },    // VCTK male voice 2
+      'male-3': { name: 'en/vctk_low/p256', language: 'en' },    // Additional VCTK male voice
+      'male-4': { name: 'en/vctk_low/p261', language: 'en' }     // Additional VCTK male voice
     };
+    
+    // Check if FAL.ai API is available
+    const useFalAi = !!process.env.FAL_KEY;
+    if (useFalAi) {
+      console.log('Using FAL.ai API for text-to-speech');
+    } else {
+      console.log('FAL_KEY not set, falling back to Mozilla TTS or local TTS');
+    }
       
     // Mozilla TTS API endpoint - using their public service or from env
     const mozillaTTSEndpoint = process.env.MOZILLA_TTS_ENDPOINT || 'https://tts.mozilla.org/api/v1/tts';
-      // Check if Mozilla TTS service is available
-    let isMozillaTTSAvailable = false;
-    try {
-      const mozillaTTSStatusEndpoint = mozillaTTSEndpoint.replace('/tts', '/status');
-      const response = await axios.get(mozillaTTSStatusEndpoint, { timeout: 5000 });
-      console.log('Mozilla TTS service status:', response.data);
-      isMozillaTTSAvailable = true;    } catch (error) {
-      console.warn('Mozilla TTS service unavailable:', error.message);
-      console.log('Will use local fallback TTS for each operating system:');
-      console.log('- Windows: PowerShell Speech Synthesis');
-      console.log('- macOS: say command');
-      console.log('- Linux: espeak');
-    }
     
-    // Generate audio for each line using Mozilla TTS
+    // Check if Mozilla TTS service is available (only if not using FAL.ai)
+    let isMozillaTTSAvailable = false;
+    if (!useFalAi) {
+      try {
+        const mozillaTTSStatusEndpoint = mozillaTTSEndpoint.replace('/tts', '/status');
+        const response = await axios.get(mozillaTTSStatusEndpoint, { timeout: 5000 });
+        console.log('Mozilla TTS service status:', response.data);
+        isMozillaTTSAvailable = true;
+      } catch (error) {
+        console.warn('Mozilla TTS service unavailable:', error.message);
+        console.log('Will use local fallback TTS for each operating system:');
+        console.log('- Windows: PowerShell Speech Synthesis');
+        console.log('- macOS: say command');
+        console.log('- Linux: espeak');
+      }
+    }
+      // Generate audio for each line
     for (const [index, line] of dialogue.entries()) {
-      // Determine which voice to use
-      const voiceId = line.speaker === 'Nina' ? voice1 : voice2;
+      // Determine which voice to use based on the speaker
+      // Use different voices even if the user selected the same voice type
+      // to ensure characters sound distinct from each other
+      let voiceId;
+      if (line.speaker === 'Nina') {
+        // For Nina, use the selected voice or a female voice
+        if (voice1.startsWith('female-')) {
+          voiceId = voice1;
+        } else if (voice1.startsWith('male-')) {
+          // If male voice was selected for Nina, use female-3 as an alternative
+          voiceId = 'female-3';
+        } else {
+          voiceId = 'female-1';
+        }
+      } else {
+        // For other character, use the selected voice or a male voice
+        if (voice2.startsWith('male-')) {
+          voiceId = voice2; 
+        } else if (voice2.startsWith('female-')) {
+          // If female voice was selected for the other character, use male-3 as an alternative
+          voiceId = 'male-3';
+        } else {
+          voiceId = 'male-1';
+        }
+      }
+      
+      // For Mozilla TTS fallback
       const mozillaVoice = voiceMap[voiceId] || voiceMap['female-1'];  // Fallback to default voice
       
-      console.log(`Generating audio for ${line.speaker} using voice ${mozillaVoice.name}`);
+      console.log(`Generating audio for ${line.speaker} using voice ${voiceId}`);
       
       // Generate output filename
       const outputFile = path.join(tempDir, `line_${index + 1}.wav`);
-        try {
+      
+      try {
         console.log(`Generating audio for line ${index + 1}`);
         
-        // Determine which TTS service to use
-        if (isMozillaTTSAvailable) {
-          // Use the Mozilla TTS direct API
-          const params = new URLSearchParams({
-            text: line.text,
-            voice: mozillaVoice.name,
-            lang: mozillaVoice.language
-          });
-          
-          const ttsUrl = `${mozillaTTSEndpoint}?${params.toString()}`;
-          const fileStream = fs.createWriteStream(outputFile);
-          
-          try {
-            console.log(`Using Mozilla TTS API with voice ${mozillaVoice.name}...`);
+        if (useFalAi) {          try {
+            // Generate audio using FAL.ai with the specific voice ID
+            const audioUrl = await generateFalAudio(line.text, line.speaker, voiceId);
             
             // Download the audio file
-            await new Promise((resolve, reject) => {
-              https.get(ttsUrl, (response) => {
-                if (response.statusCode !== 200) {
-                  reject(new Error(`Failed to fetch audio: ${response.statusCode} ${response.statusMessage}`));
-                  return;
-                }
-                
-                pipeline(response, fileStream)
-                  .then(() => {
-                    console.log(`Mozilla TTS audio synthesized for line ${index + 1}`);
-                    resolve();
-                  })
-                  .catch(err => {
-                    console.error(`Error saving Mozilla TTS audio file: ${err}`);
-                    reject(err);
-                  });              }).on('error', (err) => {
-                console.error(`Error requesting Mozilla TTS: ${err}`);
-                reject(err);
-              });
-            });
-          } catch (error) {
-            console.error(`Mozilla TTS API error: ${error}. Falling back to local synthesis...`);
-            isMozillaTTSAvailable = false; // Disable Mozilla TTS for future requests in this session
-            await useLocalTTS(line.text, outputFile);
+            await downloadAudio(audioUrl, outputFile);
+            console.log(`FAL.ai audio downloaded for line ${index + 1}`);
+          } catch (falError) {
+            console.error(`FAL.ai API error: ${falError.message}. Falling back to alternate TTS...`);
+            
+            // If FAL.ai fails, try Mozilla TTS or local fallback
+            if (isMozillaTTSAvailable) {
+              await useMozillaTTS(line.text, mozillaVoice, outputFile, mozillaTTSEndpoint);
+            } else {
+              await useLocalTTS(line.text, outputFile);
+            }
           }
+        } else if (isMozillaTTSAvailable) {
+          // Use Mozilla TTS
+          await useMozillaTTS(line.text, mozillaVoice, outputFile, mozillaTTSEndpoint);
         } else {
-          // Mozilla TTS is not available, use local fallback directly
-          console.log('Using local TTS fallback...');
+          // Use local fallback
           await useLocalTTS(line.text, outputFile);
+        }
+        
+        // Function for Mozilla TTS
+        async function useMozillaTTS(text, voice, outputPath, endpoint) {
+          // Use the Mozilla TTS direct API
+          const params = new URLSearchParams({
+            text: text,
+            voice: voice.name,
+            lang: voice.language
+          });
+          
+          const ttsUrl = `${endpoint}?${params.toString()}`;
+          const fileStream = fs.createWriteStream(outputPath);
+          
+          console.log(`Using Mozilla TTS API with voice ${voice.name}...`);
+          
+          // Download the audio file
+          return new Promise((resolve, reject) => {
+            https.get(ttsUrl, (response) => {
+              if (response.statusCode !== 200) {
+                reject(new Error(`Failed to fetch audio: ${response.statusCode} ${response.statusMessage}`));
+                return;
+              }
+              
+              pipeline(response, fileStream)
+                .then(() => {
+                  console.log(`Mozilla TTS audio synthesized for line ${index + 1}`);
+                  resolve();
+                })
+                .catch(err => {
+                  console.error(`Error saving Mozilla TTS audio file: ${err}`);
+                  reject(err);
+                });
+            }).on('error', (err) => {
+              console.error(`Error requesting Mozilla TTS: ${err}`);
+              reject(err);
+            });
+          });
         }
         
         // Function for local TTS fallback
         async function useLocalTTS(text, outputPath) {
           const { execSync } = await import('child_process');
-            if (process.platform === 'win32') {
+          
+          if (process.platform === 'win32') {
             // Using PowerShell's speech synthesis on Windows
             console.log('Using Windows Speech Synthesis...');
             // Properly escape all special characters for PowerShell
@@ -166,33 +347,26 @@ export const generateAudio = async (req, res) => {
           } else if (process.platform === 'darwin') {
             // Using say on macOS
             console.log('Using macOS Say command...');
-            execSync(`say -o "${outputPath}" "${text.replace(/"/g, '\\"')}"`);          } else {
+            execSync(`say -o "${outputPath}" "${text.replace(/"/g, '\\"')}"`);
+          } else {
             // Using espeak on Linux with enhanced quality parameters
             console.log('Using Linux eSpeak...');
             execSync(`espeak -v en-us -s 150 -p 50 -a 200 -g 10 "${text.replace(/"/g, '\\"')}" -w "${outputPath}"`);
           }
           console.log(`Local TTS generated for line ${index + 1}`);
-        }        // Convert wav to mp3 for consistency with previous implementation
-        const mp3OutputFile = outputFile.replace('.wav', '.mp3');        try {
+        }
+        
+        // Convert wav to mp3 for consistency with previous implementation
+        const mp3OutputFile = outputFile.replace('.wav', '.mp3');
+        
+        try {
           const { execSync } = await import('child_process');
           console.log('Converting WAV to MP3 using FFmpeg...');
-            // Check if ffmpeg.exe exists in the backend folder first
-          let ffmpegCmd = 'ffmpeg';
-          const localFFmpeg = path.join(__dirname, '../ffmpeg.exe');
           
-          if (fs.existsSync(localFFmpeg)) {
-            try {
-              const stats = fs.statSync(localFFmpeg);
-              console.log(`Using local FFmpeg executable from backend directory (${stats.size} bytes, read access: ${fs.accessSync(localFFmpeg, fs.constants.R_OK) === undefined})`);
-              ffmpegCmd = `"${localFFmpeg}"`;
-            } catch (err) {
-              console.error(`FFmpeg executable found but cannot be accessed: ${err.message}`);
-              ffmpegCmd = 'ffmpeg'; // Fallback to system path
-            }
-          } else {
-            console.log('Local FFmpeg not found, trying system PATH');
-          }
-            try {
+          // Check if ffmpeg.exe exists in the backend folder first
+          let ffmpegCmd = getFFmpegPath();
+          
+          try {
             console.log(`Running FFmpeg command: ${ffmpegCmd} -i "${outputFile}" -codec:a libmp3lame -qscale:a 2 "${mp3OutputFile}" -y`);
             const result = execSync(`${ffmpegCmd} -i "${outputFile}" -codec:a libmp3lame -qscale:a 2 "${mp3OutputFile}" -y`, { encoding: 'utf8' });
             
@@ -203,7 +377,8 @@ export const generateAudio = async (req, res) => {
               console.log(`Successfully converted to MP3: ${mp3OutputFile}`);
             } else {
               throw new Error('FFmpeg completed but output file is missing or empty');
-            }          } catch (ffmpegError) {
+            }
+          } catch (ffmpegError) {
             console.error(`FFmpeg error details: ${ffmpegError.message}`);
             throw ffmpegError; // Re-throw to be caught by the outer catch block
           }
@@ -224,7 +399,8 @@ export const generateAudio = async (req, res) => {
         }
         
         console.log(`Audio generation completed for line ${index + 1}`);
-          // Add the file info to the list
+        
+        // Add the file info to the list
         audioFiles.push({
           path: mp3OutputFile,
           startTime: index * 5,
@@ -262,7 +438,8 @@ export const generateAudio = async (req, res) => {
       }
     }
     // End of the dialogue processing loop
-      // Generate a timestamp for the final file
+    
+    // Generate a timestamp for the final file
     const timestamp = Date.now();
     const mergedAudioFilename = `merged_audio_${timestamp}.mp3`;
     const mergedAudioPath = path.join(outputDir, mergedAudioFilename);

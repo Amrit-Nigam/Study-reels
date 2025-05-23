@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import videoRoutes from './routes/video.js';
+import voiceRoutes from './routes/voice.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
@@ -37,6 +38,7 @@ app.use('/uploads', express.static(join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/video', videoRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
