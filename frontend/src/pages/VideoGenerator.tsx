@@ -14,15 +14,18 @@ interface DialogueLine {
   text: string;
 }
 
-const AZURE_VOICE_OPTIONS: VoiceOption[] = [
-  { id: 'female-1', name: 'Jenny (Female)' },
-  { id: 'female-2', name: 'Aria (Female)' },
-  { id: 'male-1', name: 'Guy (Male)' },
-  { id: 'male-2', name: 'Davis (Male)' }
+const MOZILLA_VOICE_OPTIONS: VoiceOption[] = [
+  { id: 'female-1', name: 'Female Voice 1' },
+  { id: 'female-2', name: 'Female Voice 2' },
+  { id: 'male-1', name: 'Male Voice 1' },
+  { id: 'male-2', name: 'Male Voice 2' }
 ];
 
-export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  const [voice1, setVoice1] = useState(AZURE_VOICE_OPTIONS[0].id);
-  const [voice2, setVoice2] = useState(AZURE_VOICE_OPTIONS[2].id);const [gameplayVideo, setGameplayVideo] = useState<File | null>(null);
+export const VideoGenerator = () => {  
+  const [topic, setTopic] = useState('');  
+  const [voice1, setVoice1] = useState(MOZILLA_VOICE_OPTIONS[0].id);
+  const [voice2, setVoice2] = useState(MOZILLA_VOICE_OPTIONS[2].id);
+  const [gameplayVideo, setGameplayVideo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [dialogue, setDialogue] = useState<DialogueLine[]>([]);
@@ -157,13 +160,12 @@ export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  
           <div className="space-y-4">
             <label className="block text-sm font-medium">
               Enter a topic for your video
-            </label>
-            <input
+            </label>            <input
               type="text"
               value={topic}
               onChange={handleTopicChange}
               placeholder="e.g., Pokémon facts, space exploration, coffee brewing"
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               disabled={loading}
             />
           </div>
@@ -175,12 +177,13 @@ export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  
             <div>
               <label className="block text-sm font-medium mb-2">
                 Voice for Nina
-              </label>
-              <select
+              </label>              <select
                 value={voice1}
                 onChange={handleVoice1Change}
-                className="w-full p-2 border rounded-md"
-                disabled={loading}              >                {AZURE_VOICE_OPTIONS.filter((v: VoiceOption) => v.name.includes('Female')).map((voice: VoiceOption) => (
+                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                disabled={loading}
+              >
+                {MOZILLA_VOICE_OPTIONS.filter((v: VoiceOption) => v.name.includes('Female')).map((voice: VoiceOption) => (
                   <option key={voice.id} value={voice.id}>
                     {voice.name}
                   </option>
@@ -191,28 +194,25 @@ export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  
             <div>
               <label className="block text-sm font-medium mb-2">
                 Voice for Jay
-              </label>
-              <select
+              </label>              <select
                 value={voice2}
                 onChange={handleVoice2Change}
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 disabled={loading}
               >
-                {AZURE_VOICE_OPTIONS.filter((v: VoiceOption) => v.name.includes('Male')).map((voice: VoiceOption) => (
+                {MOZILLA_VOICE_OPTIONS.filter((v: VoiceOption) => v.name.includes('Male')).map((voice: VoiceOption) => (
                   <option key={voice.id} value={voice.id}>
                     {voice.name}
                   </option>
                 ))}
               </select>
-            </div>
-
-            {dialogue.length > 0 && (
-              <div className="mt-6 p-4 border rounded-md bg-gray-50">
-                <h3 className="font-medium mb-2">Generated Dialogue:</h3>
+            </div>            {dialogue.length > 0 && (
+              <div className="mt-6 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800/50">
+                <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-100">Generated Dialogue:</h3>
                 <div className="space-y-2">
                   {dialogue.map((line, index) => (
-                    <p key={index}>
-                      <span className="font-bold">{line.speaker}:</span> {line.text}
+                    <p key={index} className="text-gray-800 dark:text-gray-200">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">{line.speaker}:</span> {line.text}
                     </p>
                   ))}
                 </div>
@@ -226,8 +226,7 @@ export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  
           <div className="space-y-4">
             <label className="block text-sm font-medium">
               Upload gameplay video
-            </label>
-            <div className="flex flex-col items-center p-6 border-2 border-dashed rounded-md">
+            </label>            <div className="flex flex-col items-center p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800/30">
               <input
                 type="file"
                 onChange={handleFileChange}
@@ -235,16 +234,17 @@ export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  
                 className="hidden"
                 ref={fileInputRef}
                 disabled={loading}
-              />              <button
+              />
+              <button
                 onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                 disabled={loading}
               >
                 Select Video File
               </button>
               {gameplayVideo && (
-                <p className="mt-2 text-sm">
-                  Selected: {gameplayVideo.name}
+                <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                  Selected: <span className="font-medium">{gameplayVideo.name}</span>
                 </p>
               )}
             </div>
@@ -253,28 +253,30 @@ export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  
       
       case 3:
         return (
-          <div className="space-y-6">
-            <div className="p-4 border rounded-md">
-              <h3 className="font-medium mb-2">Summary:</h3>              <p><span className="font-semibold">Topic:</span> {topic}</p>
-              <p><span className="font-semibold">Voice for Nina:</span> {AZURE_VOICE_OPTIONS.find((v: VoiceOption) => v.id === voice1)?.name}</p>
-              <p><span className="font-semibold">Voice for Jay:</span> {AZURE_VOICE_OPTIONS.find((v: VoiceOption) => v.id === voice2)?.name}</p>
-              <p><span className="font-semibold">Gameplay video:</span> {gameplayVideo?.name}</p>
+          <div className="space-y-6">            <div className="p-5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800/50">
+              <h3 className="font-medium mb-3 text-gray-900 dark:text-gray-100">Summary:</h3>              
+              <div className="space-y-2">
+                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Topic:</span> {topic}</p>
+                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Voice for Nina:</span> {MOZILLA_VOICE_OPTIONS.find((v: VoiceOption) => v.id === voice1)?.name}</p>
+                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Voice for Jay:</span> {MOZILLA_VOICE_OPTIONS.find((v: VoiceOption) => v.id === voice2)?.name}</p>
+                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Gameplay video:</span> {gameplayVideo?.name}</p>
+              </div>
             </div>
-            
-            {videoUrl && (
+              {videoUrl && (
               <div className="mt-6">
-                <h3 className="font-medium mb-2">Generated Video:</h3>
-                <div className="aspect-video">
+                <h3 className="font-medium mb-3 text-gray-900 dark:text-gray-100">Generated Video:</h3>
+                <div className="aspect-video bg-black rounded-md overflow-hidden shadow-lg">
                   <video
                     src={videoUrl}
                     controls
-                    className="w-full h-full border rounded-md"
+                    className="w-full h-full"
+                    poster="/placeholder-video.png"
                   />
                 </div>
                 <a
                   href={videoUrl}
                   download
-                  className="mt-4 inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  className="mt-4 inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
                 >
                   Download Video
                 </a>
@@ -287,39 +289,44 @@ export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  
         return null;
     }
   };
-
   return (
-    <div className="container mx-auto p-4 max-w-3xl">
-      <h1 className="text-3xl font-bold mb-6">🧠 Brainrot Video Generator</h1>
+    <div className="container mx-auto p-6 max-w-3xl">      <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+        <span className="mr-2">🧠</span>
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+          Brainrot Video Generator
+        </span>
+      </h1>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+        Powered by <span className="font-medium">Mozilla TTS</span> open-source voice technology
+      </p>
       
       {/* Progress Indicator */}
       <div className="mb-8">
-        <div className="flex justify-between mb-2">
+        <div className="flex justify-between mb-3">
           {steps.map((step, index) => (
             <div
               key={index}
               className={`flex-1 text-center ${
                 index < currentStep 
-                  ? 'text-green-600'
+                  ? 'text-green-600 dark:text-green-400'
                   : index === currentStep 
-                  ? 'text-blue-600 font-medium'
-                  : 'text-gray-400'
+                  ? 'text-blue-600 dark:text-blue-400 font-medium'
+                  : 'text-gray-400 dark:text-gray-500'
               }`}
             >
               {step}
             </div>
           ))}
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
           <div
-            className="bg-blue-600 h-2.5 rounded-full"
+            className="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full transition-all duration-300 ease-in-out"
             style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
           ></div>
         </div>
-      </div>
-      
+      </div>      
       {/* Step Content */}
-      <div className="border rounded-md p-6 mb-6">
+      <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-6 mb-6 bg-white dark:bg-gray-850 shadow-sm">
         {renderStepContent()}
       </div>
       
@@ -329,6 +336,7 @@ export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  
           onClick={handleBack}
           disabled={currentStep === 0 || loading}
           variant="outline"
+          className="transition-all duration-200"
         >
           Back
         </Button>
@@ -336,6 +344,7 @@ export const VideoGenerator = () => {  const [topic, setTopic] = useState('');  
         <Button
           onClick={handleNext}
           disabled={loading}
+          className="transition-all duration-200"
         >
           {loading ? (
             <>
