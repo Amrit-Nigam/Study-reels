@@ -23,16 +23,28 @@ export const generateScript = async (req, res) => {
     console.log(`Using ${modelName} model`);
     const model = genAI.getGenerativeModel({ model: modelName });
 
-    const prompt = `Generate a short, casual dialogue between two characters named Nina and Jay about "${topic}". 
-    Format the response as a JSON array of objects, where each object has a 'speaker' property (either "Nina" or "Jay") 
-    and a 'text' property containing their line of dialogue. Keep the entire dialogue under 200 words total, 
-    with each individual line under 20 words for natural conversation flow. Make the dialogue funny and engaging.
+    const prompt = `Create an educational dialogue between two characters named Nina and Jay discussing "${topic}". 
+    They should have a natural, conversational explanation that helps listeners understand the topic thoroughly. 
+    Nina is knowledgeable but explains things in simple terms, while Jay asks clarifying questions and offers insights.
+    
+    The dialogue should:
+    - Be informative and educational about "${topic}"
+    - Include analogies or examples to explain complex concepts
+    - Have a natural conversational flow with back-and-forth exchanges 
+    - Be approximately 300-500 words in total
+    - End with a clear summary or takeaway about the topic
+    
+    Format the response as a JSON array of objects, where each object has a 'speaker' property (either "Nina" or "Jay")
+    and a 'text' property containing their line of dialogue.
     
     Example format:
     [
-      { "speaker": "Nina", "text": "Did you know Pikachu's cheeks store electricity?" },
-      { "speaker": "Jay", "text": "Whoa! That explains the sparks!" }
-    ]`;
+      { "speaker": "Nina", "text": "So, let me explain how garbage collection works in Java." },
+      { "speaker": "Jay", "text": "I've heard the term, but I'm not really sure what it does exactly." },
+      { "speaker": "Nina", "text": "It's basically an automatic memory management system that identifies and removes objects that aren't being used anymore." }
+    ]
+    
+    Only respond with the properly formatted JSON array.`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
