@@ -10,40 +10,18 @@ const exec = promisify(execCallback);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-/**
- * Get the FFmpeg executable path
- * @returns {string} Path to ffmpeg executable
- */
-function getFFmpegPath() {
-  // Check if ffmpeg exists locally in the backend directory
-  const localFFmpeg = path.join(__dirname, '../ffmpeg.exe');
-  if (fs.existsSync(localFFmpeg)) {
-    console.log('Using local FFmpeg executable from backend directory');
-    return localFFmpeg;
-  }
-  
-  // Fallback to system PATH
-  return 'ffmpeg';
-}
+// Import fluent-ffmpeg utilities
+import { createFfmpeg, verifyMediaFile, addAudioToVideo, addSubtitlesToVideo } from '../utils/ffmpegUtils.js';
 
 /**
- * Verify media file is valid using FFprobe
+ * Verify media file is valid using fluent-ffmpeg
  * @param {string} filePath - Path to the media file
  * @returns {Promise<boolean>} - Whether the file is valid
  */
-async function verifyMediaFile(filePath) {
+async function checkMediaFile(filePath) {
   try {
-    const ffprobePath = path.join(__dirname, '../ffprobe.exe');
-    const command = fs.existsSync(ffprobePath) 
-      ? `"${ffprobePath}" -v error -i "${filePath}" -show_entries format=duration -of default=noprint_wrappers=1:nokey=1`
-      : `ffprobe -v error -i "${filePath}" -show_entries format=duration -of default=noprint_wrappers=1:nokey=1`;
-    
     console.log(`Verifying media file: ${filePath}`);
-    const { stdout, stderr } = await exec(command);
-    
-    const duration = parseFloat(stdout.trim());
-    console.log(`File duration: ${duration} seconds`);
-    return !isNaN(duration) && duration > 0;
+    return await verifyMediaFile(filePath);
   } catch (error) {
     console.error(`Error verifying media file ${filePath}:`, error.message);
     return false;
@@ -107,26 +85,13 @@ export const generateVideo = async (req, res) => {
     if (hasSubtitles) {
       console.log(`- Subtitle file: ${subtitlePath}`);
     }
-    
-    // Get FFmpeg path
-    const ffmpegPath = getFFmpegPath();
-      // Construct the FFmpeg command based on whether we have subtitles
-    let ffmpegCmd;
-      // Simple command that is known to work reliably - just copy video stream and add audio
-    // We're not dealing with subtitles for now to avoid FFmpeg subtitle filter issues
-    ffmpegCmd = `"${ffmpegPath}" -i "${gameplayPath}" -i "${audioFilePath}" -map 0:v -map 1:a -c:v copy -c:a aac -shortest "${outputPath}" -y`;
-    
-    console.log(`Running FFmpeg command: ${ffmpegCmd}`);
-    
-    try {
-      // Execute the command
-      const { stdout, stderr } = await exec(ffmpegCmd);
+      // Use our fluent-ffmpeg utility instead of direct command
+    console.log('Adding audio to video using fluent-ffmpeg');
+      try {
+      // Use our addAudioToVideo helper instead of exec
+      await addAudioToVideo(gameplayPath, audioFilePath, outputPath);
       
-      console.log('FFmpeg process completed');
-      if (stderr) {
-        // FFmpeg outputs progress info to stderr, so this is not necessarily an error
-        console.log('FFmpeg stderr output:', stderr);
-      }
+      console.log('Video processing completed');
       
       // Check if output file exists and has content
       if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0) {
@@ -141,10 +106,10 @@ export const generateVideo = async (req, res) => {
         });
       } else {
         console.error('Output file is missing or empty');
-        throw new Error('Output file is missing or empty after FFmpeg process completed');
+        throw new Error('Output file is missing or empty after video processing');
       }
     } catch (execError) {
-      console.error('FFmpeg execution error:', execError.message);
+      console.error('Video processing error:', execError.message);
       
       if (execError.stderr) {
         console.error('FFmpeg stderr:', execError.stderr);
@@ -152,13 +117,13 @@ export const generateVideo = async (req, res) => {
       
       // Try a more compatible FFmpeg command with less options
       console.log('Attempting video generation with simpler command...');
-      
-      try {
-        // More compatible fallback command
-        const fallbackCmd = `"${ffmpegPath}" -i "${gameplayPath}" -i "${audioFilePath}" -c:v copy -c:a aac "${outputPath}" -y`;
-        console.log(`Running fallback FFmpeg command: ${fallbackCmd}`);
+        try {
+        // Create a new ffmpeg command with simpler options
+        console.log('Trying alternative video processing approach');
         
-        const { stdout: fallbackStdout, stderr: fallbackStderr } = await exec(fallbackCmd);
+        // Use a simpler version of addAudioToVideo with basic options
+        const simpleOptions = { useSimpleOptions: true };
+        await addAudioToVideo(gameplayPath, audioFilePath, outputPath, simpleOptions);
         
         if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0) {
           console.log('Video generation completed with fallback command');

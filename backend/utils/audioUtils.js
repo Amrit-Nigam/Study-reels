@@ -2,40 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 import { exec as execCallback } from 'child_process';
+import { getAudioDuration as getDurationFromFfmpeg } from './ffmpegUtils.js';
 
 const exec = promisify(execCallback);
 
-/**
- * Utility function to get the FFmpeg command path
- * @returns {string} Path to ffmpeg executable
- */
-export function getFFmpegPath(baseDir) {
-  // Check if ffmpeg exists locally in the backend directory
-  const localFFmpeg = path.join(baseDir, 'ffmpeg.exe');
-  if (fs.existsSync(localFFmpeg)) {
-    console.log('Using local FFmpeg executable from backend directory');
-    return `"${localFFmpeg}"`;
-  }
-  
-  // Fallback to system PATH
-  return 'ffmpeg';
-}
-
-/**
- * Utility function to get the FFprobe command path
- * @returns {string} Path to ffprobe executable
- */
-export function getFFprobePath(baseDir) {
-  // Check if ffprobe exists locally in the backend directory
-  const localFFprobe = path.join(baseDir, 'ffprobe.exe');
-  if (fs.existsSync(localFFprobe)) {
-    console.log('Using local FFprobe executable from backend directory');
-    return `"${localFFprobe}"`;
-  }
-  
-  // Fallback to system PATH
-  return 'ffprobe';
-}
+// The old FFmpeg and FFprobe path functions are no longer necessary
+// We're now using the fluent-ffmpeg module with @ffmpeg-installer and @ffprobe-installer
 
 /**
  * Concatenate multiple audio files into a single file
@@ -191,22 +163,14 @@ export async function concatenateAudioFiles(audioFiles, outputPath, tempDir, bas
  * Create a silent audio file as a fallback
  * @param {string} outputPath - Path where the silent audio should be saved
  * @param {number} durationSeconds - Duration of silent audio in seconds
- * @param {string} baseDir - Base directory of the application
+ * @param {string} baseDir - Base directory of the application (not used anymore)
  * @returns {Promise<void>}
  */
 export async function createSilentAudio(outputPath, durationSeconds = 2, baseDir) {
-  const ffmpegCmd = getFFmpegPath(baseDir);
-  
   try {
-    // Create a silent audio file of the specified duration
-    const command = `${ffmpegCmd} -f lavfi -i anullsrc=r=44100:cl=stereo -t ${durationSeconds} -q:a 9 -acodec pcm_s16le "${outputPath}" -y`;
-    console.log(`Creating silent audio file: ${command}`);
-    
-    const { stdout, stderr } = await exec(command);
-    if (stderr) {
-      console.log(`FFmpeg stderr: ${stderr}`);
-    }
-    console.log(`Created silent audio file: ${outputPath}`);
+    // Import and use the new createSilentAudio function from ffmpegUtils
+    const { createSilentAudio: createSilentWithFfmpeg } = await import('./ffmpegUtils.js');
+    return await createSilentWithFfmpeg(outputPath, durationSeconds);
   } catch (error) {
     console.error(`Failed to create silent audio file: ${error.message}`);
     throw error;
@@ -216,17 +180,13 @@ export async function createSilentAudio(outputPath, durationSeconds = 2, baseDir
 /**
  * Get the duration of an audio file
  * @param {string} filePath - Path to the audio file
- * @param {string} baseDir - Base directory of the application
+ * @param {string} baseDir - Base directory of the application (not used anymore)
  * @returns {Promise<number>} - Duration in seconds
  */
 export async function getAudioDuration(filePath, baseDir) {
-  const ffprobeCmd = getFFprobePath(baseDir);
-  
   try {
-    // Get audio duration using ffprobe
-    const durationCmd = `${ffprobeCmd} -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`;
-    const { stdout } = await exec(durationCmd);
-    return parseFloat(stdout.trim());
+    // Using the imported getDurationFromFfmpeg from ffmpegUtils.js
+    return await getDurationFromFfmpeg(filePath);
   } catch (error) {
     console.error(`Error getting duration for ${filePath}:`, error);
     throw error;

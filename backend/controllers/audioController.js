@@ -23,18 +23,8 @@ if (process.env.FAL_KEY) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Helper function to get the ffmpeg command path
-function getFFmpegPath() {
-  // Check if ffmpeg exists locally in the backend directory
-  const localFFmpeg = path.join(__dirname, '../ffmpeg.exe');
-  if (fs.existsSync(localFFmpeg)) {
-    console.log('Using local FFmpeg executable from backend directory');
-    return localFFmpeg;
-  }
-  
-  // Fallback to system PATH
-  return 'ffmpeg';
-}
+// Import the new FFmpeg utility functions
+import { convertAudio } from '../utils/ffmpegUtils.js';
 
 // Helper function to generate audio using FAL.ai API
 async function generateFalAudio(text, speaker, voiceId) {
@@ -358,17 +348,15 @@ export const generateAudio = async (req, res) => {
         
         // Convert wav to mp3 for consistency with previous implementation
         const mp3OutputFile = outputFile.replace('.wav', '.mp3');
-        
-        try {
-          const { execSync } = await import('child_process');
-          console.log('Converting WAV to MP3 using FFmpeg...');
-          
-          // Check if ffmpeg.exe exists in the backend folder first
-          let ffmpegCmd = getFFmpegPath();
+          try {
+          console.log('Converting WAV to MP3 using fluent-ffmpeg...');
           
           try {
-            console.log(`Running FFmpeg command: ${ffmpegCmd} -i "${outputFile}" -codec:a libmp3lame -qscale:a 2 "${mp3OutputFile}" -y`);
-            const result = execSync(`${ffmpegCmd} -i "${outputFile}" -codec:a libmp3lame -qscale:a 2 "${mp3OutputFile}" -y`, { encoding: 'utf8' });
+            // Use our new convertAudio utility function
+            await convertAudio(outputFile, mp3OutputFile, {
+              codec: 'libmp3lame',
+              quality: 2
+            });
             
             // Check if MP3 file was created and has content
             if (fs.existsSync(mp3OutputFile) && fs.statSync(mp3OutputFile).size > 0) {
@@ -485,10 +473,10 @@ export const generateAudio = async (req, res) => {
       srtContent += `${startTime} --> ${endTime}\n`;
       srtContent += `${file.speaker}: ${file.text}\n\n`;
     }
-      // Write the SRT file
+    // Write the SRT file
     fs.writeFileSync(srtFilePath, srtContent);
-      // Import the new concat-only utility
-    const { concatenateAudioFiles } = await import('../utils/audioUtils.concat.js');
+      // Import the new fluent-ffmpeg concat utility
+    const { concatenateAudioFiles } = await import('../utils/ffmpegConcatUtils.js');
     
     // Check if we have any files to concatenate
     if (audioFiles.length === 0) {
@@ -497,11 +485,10 @@ export const generateAudio = async (req, res) => {
         details: 'No audio files were generated successfully'
       });
     }
-    
-    // Use our audio concatenation utility
+      // Use our audio concatenation utility
     try {
       // Pass the necessary parameters to the concatenation utility
-      await concatenateAudioFiles(audioFiles, mergedAudioPath, tempDir, path.join(__dirname, '..'));
+      await concatenateAudioFiles(audioFiles, mergedAudioPath);
       
       // Clean up temporary files - the individual audio files
       try {

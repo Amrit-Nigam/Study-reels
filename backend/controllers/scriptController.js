@@ -44,7 +44,8 @@ export const generateScript = async (req, res) => {
       { "speaker": "Nina", "text": "It's basically an automatic memory management system that identifies and removes objects that aren't being used anymore." }
     ]
     
-    Only respond with the properly formatted JSON array.`;
+    Only respond with the properly formatted JSON array.
+    ONLY 3 DIALOGS SHORT SHORT. NO MORE THAN 3 DIALOGS NOT EXCEEDING 10WORDS PER DIALOG.`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
