@@ -31,7 +31,8 @@ if (!fs.existsSync(tempDir)) {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
 
 // Routes
@@ -40,6 +41,29 @@ app.use('/api/video', videoRoutes);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
+
+// System check endpoint for troubleshooting
+app.get('/api/system-check', async (req, res) => {
+  try {
+    const { checkFFmpegInstallation } = await import('./utils/systemCheck.js');
+    const results = await checkFFmpegInstallation();
+    res.status(200).json(results);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to check system', details: error.message });
+  }
+});
+
+// Detailed report endpoint
+app.get('/api/system-report', async (req, res) => {
+  try {
+    const { generateFFmpegReport } = await import('./utils/systemCheck.js');
+    const report = await generateFFmpegReport();
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(report);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to generate report', details: error.message });
+  }
 });
 
 // Start server
