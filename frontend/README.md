@@ -1,7 +1,7 @@
 # ShadCn UI BoilerPlate for React + Vite
 
-- Replace "UITEMPLATE" with your project name
-- Replace "uitemplate" with your project name in package.json
+- Replace "StudyBrainrot" with your project name
+- Replace "StudyBrainrot" with your project name in package.json
 - Update Client and server URL in .env files
 
 ```
