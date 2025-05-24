@@ -75,15 +75,17 @@ export const getAvailableVoices = (req, res) => {
       }
     };
     
-    // Check if FAL.ai API is available
+    // Check if TTS APIs are available
     const isFalAvailable = !!process.env.FAL_KEY;
+    const isElevenLabsAvailable = !!process.env.ELEVENLABS_API_KEY;
     
     // Return available voices with API status
     return res.status(200).json({
       success: true,
       voices: availableVoices,
       apiStatus: {
-        falAi: isFalAvailable ? 'available' : 'unavailable'
+        falAi: isFalAvailable ? 'available' : 'unavailable',
+        elevenLabs: isElevenLabsAvailable ? 'available' : 'unavailable'
       }
     });
     

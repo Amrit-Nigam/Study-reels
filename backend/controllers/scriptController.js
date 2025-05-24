@@ -45,7 +45,7 @@ export const generateScript = async (req, res) => {
     ]
     
     Only respond with the properly formatted JSON array.
-    ONLY 3 DIALOGS SHORT SHORT. NO MORE THAN 3 DIALOGS NOT EXCEEDING 10WORDS PER DIALOG.`;
+    ONLY 10 DIALOGS SHORT SHORT. NO MORE THAN 10 DIALOGS NOT EXCEEDING 10WORDS PER DIALOG.`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;

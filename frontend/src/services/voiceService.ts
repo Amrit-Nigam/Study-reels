@@ -14,6 +14,7 @@ export interface VoiceApiResponse {
   voices: Record<string, VoiceOption>;
   apiStatus: {
     falAi: 'available' | 'unavailable';
+    elevenLabs: 'available' | 'unavailable';
   };
 }
 

@@ -169,11 +169,32 @@ export const VideoGenerator = () => {
       handleGenerateVideo();
     }
   };
-
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  const handleReset = () => {
+    // Reset all state to initial values
+    setTopic('');
+    setDialogue([]);
+    setGameplayVideo(null);
+    setVideoUrl('');
+    setCurrentStep(0);
+    
+    // Reset voice options to defaults if needed
+    const defaultFemale = voiceOptions.find(v => v.gender === 'female')?.id || 'female-1';
+    const defaultMale = voiceOptions.find(v => v.gender === 'male')?.id || 'male-1';
+    setVoice1(defaultFemale);
+    setVoice2(defaultMale);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    
+    toast.info('Ready to create a new video!');
   };
 
   const renderStepContent = () => {
@@ -309,14 +330,19 @@ export const VideoGenerator = () => {
                     className="w-full h-full"
                     poster="/placeholder-video.png"
                   />
-                </div>
-                <a
+                </div>                <a
                   href={videoUrl}
                   download
-                  className="mt-4 inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                  className="mt-4 inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 mr-2"
                 >
                   Download Video
                 </a>
+                <button
+                  onClick={handleReset}
+                  className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                >
+                  Create New Video
+                </button>
               </div>
             )}
           </div>
@@ -333,7 +359,7 @@ export const VideoGenerator = () => {
           Brainrot Video Generator
         </span>
       </h1>      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Powered by <span className="font-medium">FAL.ai</span> advanced voice technology
+        Powered by <span className="font-medium">ElevenLabs</span> advanced voice technology
       </p>
       
       {/* Progress Indicator */}
@@ -365,8 +391,7 @@ export const VideoGenerator = () => {
       <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-6 mb-6 bg-white dark:bg-gray-850 shadow-sm">
         {renderStepContent()}
       </div>
-      
-      {/* Navigation Buttons */}
+        {/* Navigation Buttons */}
       <div className="flex justify-between">
         <Button
           onClick={handleBack}
@@ -376,6 +401,17 @@ export const VideoGenerator = () => {
         >
           Back
         </Button>
+        
+        {/* New button for resetting/creating a new video */}
+        {videoUrl && (
+          <Button
+            onClick={handleReset}
+            variant="secondary"
+            className="transition-all duration-200 mx-2"
+          >
+            New Video
+          </Button>
+        )}
         
         <Button
           onClick={handleNext}

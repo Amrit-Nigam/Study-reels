@@ -20,11 +20,79 @@ if (process.env.FAL_KEY) {
   });
 }
 
+// ElevenLabs API configuration
+const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Import the new FFmpeg utility functions
 import { convertAudio } from '../utils/ffmpegUtils.js';
+
+// Helper function to generate audio using ElevenLabs API
+async function generateElevenLabsAudio(text, voiceId) {
+  try {
+    if (!process.env.ELEVENLABS_API_KEY) {
+      throw new Error('ELEVENLABS_API_KEY environment variable not set');
+    }
+    
+    console.log(`Generating audio with ElevenLabs using voice ${voiceId}`);
+    
+    // Map voice IDs to ElevenLabs voice IDs
+    // These are example IDs - you'll need to replace with actual ElevenLabs voice IDs
+    const elevenLabsVoiceMap = {
+      'female-1': '21m00Tcm4TlvDq8ikWAM', // Rachel
+      'female-2': 'AZnzlk1XvdvUeBnXmlld', // Domi
+      'female-3': 'EXAVITQu4vr4xnSDxMaL', // Bella
+      'female-4': 'ThT5KcBeYPX3keUQqHPh', // Dorothy
+      'male-1': 'TxGEqnHWrfWFTfGW9XjX', // Josh
+      'male-2': 'VR6AewLTigWG4xSOukaG', // Arnold
+      'male-3': 'pNInz6obpgDQGcFmaJgB', // Adam
+      'male-4': 'jBpfuIE2acCO8z3wKNLl', // Sam
+    };
+    
+    // Get the ElevenLabs voice ID or use a default
+    const elevenLabsVoiceId = elevenLabsVoiceMap[voiceId] || elevenLabsVoiceMap['female-1'];
+    
+    // Prepare request body
+    const requestBody = {
+      text: text,
+      model_id: 'eleven_monolingual_v1',
+      voice_settings: {
+        stability: 0.5,
+        similarity_boost: 0.75
+      }
+    };
+    
+    // Make API request to ElevenLabs
+    const response = await axios({
+      method: 'post',
+      url: `${ELEVENLABS_API_URL}/text-to-speech/${elevenLabsVoiceId}`,
+      headers: {
+        'Accept': 'audio/mpeg',
+        'Content-Type': 'application/json',
+        'xi-api-key': process.env.ELEVENLABS_API_KEY
+      },
+      data: requestBody,
+      responseType: 'arraybuffer'
+    });
+    
+    // Create temporary file path
+    const tempFilePath = path.join(__dirname, '../temp', `eleven_${Date.now()}.mp3`);
+    
+    // Write the audio buffer to a file
+    fs.writeFileSync(tempFilePath, response.data);
+    
+    console.log(`ElevenLabs audio generated and saved to ${tempFilePath}`);
+    return tempFilePath;
+  } catch (error) {
+    console.error(`Error generating ElevenLabs audio: ${error.message}`);
+    if (error.response) {
+      console.error('ElevenLabs API response:', error.response.status, error.response.data);
+    }
+    throw error;
+  }
+}
 
 // Helper function to generate audio using FAL.ai API
 async function generateFalAudio(text, speaker, voiceId) {
@@ -187,13 +255,16 @@ export const generateAudio = async (req, res) => {
       'male-3': { name: 'en/vctk_low/p256', language: 'en' },    // Additional VCTK male voice
       'male-4': { name: 'en/vctk_low/p261', language: 'en' }     // Additional VCTK male voice
     };
+      // Check if TTS APIs are available
+    const useElevenLabs = !!process.env.ELEVENLABS_API_KEY;
+    const useFalAi = !useElevenLabs && !!process.env.FAL_KEY;
     
-    // Check if FAL.ai API is available
-    const useFalAi = !!process.env.FAL_KEY;
-    if (useFalAi) {
+    if (useElevenLabs) {
+      console.log('Using ElevenLabs API for text-to-speech');
+    } else if (useFalAi) {
       console.log('Using FAL.ai API for text-to-speech');
     } else {
-      console.log('FAL_KEY not set, falling back to Mozilla TTS or local TTS');
+      console.log('No TTS API keys set, falling back to Mozilla TTS or local TTS');
     }
       
     // Mozilla TTS API endpoint - using their public service or from env
@@ -250,11 +321,37 @@ export const generateAudio = async (req, res) => {
       
       // Generate output filename
       const outputFile = path.join(tempDir, `line_${index + 1}.wav`);
-      
-      try {
+        try {
         console.log(`Generating audio for line ${index + 1}`);
         
-        if (useFalAi) {          try {
+        if (useElevenLabs) {
+          try {
+            // Generate audio using ElevenLabs with the specific voice ID
+            const audioFilePath = await generateElevenLabsAudio(line.text, voiceId);
+            
+            // ElevenLabs returns an MP3 file directly, so we can just use it
+            console.log(`ElevenLabs audio generated for line ${index + 1}`);
+            
+            // Move or copy the file to our expected output path
+            fs.copyFileSync(audioFilePath, outputFile);
+            
+            // Remove the temporary file
+            fs.unlinkSync(audioFilePath);
+          } catch (elevenLabsError) {
+            console.error(`ElevenLabs API error: ${elevenLabsError.message}. Trying fallbacks...`);
+            
+            // Try FAL.ai if available
+            if (useFalAi) {
+              const audioUrl = await generateFalAudio(line.text, line.speaker, voiceId);
+              await downloadAudio(audioUrl, outputFile);
+            } else if (isMozillaTTSAvailable) {
+              await useMozillaTTS(line.text, mozillaVoice, outputFile, mozillaTTSEndpoint);
+            } else {
+              await useLocalTTS(line.text, outputFile);
+            }
+          }
+        } else if (useFalAi) {          
+          try {
             // Generate audio using FAL.ai with the specific voice ID
             const audioUrl = await generateFalAudio(line.text, line.speaker, voiceId);
             
