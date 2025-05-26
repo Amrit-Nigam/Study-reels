@@ -341,7 +341,7 @@ export const VideoGenerator = () => {
               type="text"
               value={topic}
               onChange={handleTopicChange}
-              placeholder="e.g., Pokémon facts, space exploration, coffee brewing"
+              placeholder="Enter your topic here..."
               className="w-full p-4 border border-slate-700/50 rounded-xl bg-black/30 text-white backdrop-blur-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
               disabled={loading}
             />
@@ -541,13 +541,15 @@ export const VideoGenerator = () => {
                 </div>
                 
                 <div className="mt-6 flex flex-wrap gap-4 justify-center">
-                  <a
+                    <a
                     href={videoUrl}
                     download
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 font-medium shadow-lg hover:shadow-green-500/25"
-                  >
+                    >
                     Download Video
-                  </a>
+                    </a>
                   <button
                     onClick={handleReset}
                     className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 font-medium shadow-lg hover:shadow-purple-500/25"
@@ -583,7 +585,7 @@ export const VideoGenerator = () => {
             <div className="mb-4 p-3"></div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4 flex items-center justify-center gap-2">
               <span className="bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">Study</span>
-              <span className="px-6 py-2 bg-blue-400 text-black rounded-lg">Reels</span>
+              <span className="px-6 py-2 bg-blue-500/90 text-black rounded-lg">Reels</span>
             </h1>
             <p className="text-slate-300 max-w-2xl mx-auto">
               Transform any topic into viral-worthy content with AI voices and gameplay backgrounds
