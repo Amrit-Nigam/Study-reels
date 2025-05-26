@@ -65,14 +65,30 @@ const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>(
     const [currentTextIndex, setCurrentTextIndex] = useState<number>(0);
 
     const splitIntoCharacters = (text: string): string[] => {
-      if (typeof Intl !== "undefined" && Intl.Segmenter) {
-        const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
-        return Array.from(
-          segmenter.segment(text),
-          (segment) => segment.segment
-        );
+      try {
+        // Check if Intl.Segmenter is available and supported
+        if (typeof Intl !== "undefined" && 
+            // @ts-ignore - TypeScript might not recognize Segmenter in all environments
+            typeof Intl.Segmenter === "function") {
+          try {
+            // @ts-expect-error - TypeScript doesn't fully support Intl.Segmenter yet
+            const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+            return Array.from(
+              segmenter.segment(text),
+              // @ts-expect-error - TypeScript doesn't recognize segment structure
+              (segment) => segment.segment
+            );
+          } catch (e) {
+            // Fallback if Segmenter initialization fails
+            console.warn("Intl.Segmenter failed, falling back to Array.from", e);
+            return Array.from(text);
+          }
+        }
+        return Array.from(text);
+      } catch (error) {
+        console.warn("Character splitting failed, using safe fallback", error);
+        return text.split('');
       }
-      return Array.from(text);
     };
 
     const elements = useMemo(() => {

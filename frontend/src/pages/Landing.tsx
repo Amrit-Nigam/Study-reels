@@ -24,7 +24,7 @@ export const Landing = () => {
               <span className="bg-gradient-to-r from-white/90 via-purple-200/90 to-blue-200/90 bg-clip-text text-transparent backdrop-blur-sm">Study</span>
               <RotatingText
               texts={['Reels', 'Fast','Smart','Hard','Easy']}
-              mainClassName="px-6 py-2 bg-orange-500/90 text-black overflow-hidden rounded-lg backdrop-blur-sm"
+              mainClassName="px-6 py-2 bg-blue-500/90 text-black overflow-hidden rounded-lg backdrop-blur-sm"
               staggerFrom={"last"}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
