@@ -12,8 +12,20 @@ interface DialogueLine {
 
 // Videos available for selection
 const AVAILABLE_VIDEOS = [
-  { id: 'MINECRAFT', name: 'Minecraft', file: 'MINECRAFT.mp4', thumbnail: '/img/minecraft.jpg' },
-  { id: 'SUBWAY', name: 'Subway Surfers', file: 'SUBWAY.mp4', thumbnail: '/img/subway.jpg' }
+  { 
+    id: 'MINECRAFT_CLOUD', 
+    name: 'Minecraft', 
+    file: 'https://res.cloudinary.com/dgj5gkigf/video/upload/t7z3ei3sbclrbt8diwhi.mp4', 
+    thumbnail: '/img/minecraft.jpg',
+    isExternal: true
+  },
+  { 
+    id: 'SUBWAY_CLOUD', 
+    name: 'Subway Surfers', 
+    file: 'https://res.cloudinary.com/dgj5gkigf/video/upload/jauzt4hfsctykznzzwsi.mp4', 
+    thumbnail: '/img/subway.jpg',
+    isExternal: true
+  }
 ];
 
 // Default voice options as fallback
@@ -28,7 +40,7 @@ export const VideoGenerator = () => {
   const [topic, setTopic] = useState('');    const [voice1, setVoice1] = useState('female-1');
   const [voice2, setVoice2] = useState('male-1');
   const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>(DEFAULT_VOICE_OPTIONS);
-  const [selectedVideo, setSelectedVideo] = useState<string>('MINECRAFT.mp4');
+  const [selectedVideo, setSelectedVideo] = useState<string>(AVAILABLE_VIDEOS[0].file);
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');  const [dialogue, setDialogue] = useState<DialogueLine[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -156,22 +168,27 @@ export const VideoGenerator = () => {
     setLoading(true);
     toast.info('Processing your request...');
 
-    // Create a File object from the selectedVideo for the backend
-    // This simulates the file upload for the existing backend API
+    // Fetch the external video from Cloudinary
     let videoBlob;
     try {
-      // Fetch the video file from our public directory
-      const response = await fetch(`/video/${selectedVideo}`);
+      // Fetch the video file from Cloudinary
+      const response = await fetch(selectedVideo);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch video: ${response.status}`);
+      }
       videoBlob = await response.blob();
     } catch (error) {
-      console.error('Error fetching video file:', error);
+      console.error('Error fetching Cloudinary video:', error);
       toast.error('Failed to load the selected video');
       setLoading(false);
       return;
     }
 
+    // Extract filename from URL
+    const filename = selectedVideo.split('/').pop() || 'cloudinary-video.mp4';
+    
     // Create a File object from the blob
-    const videoFile = new File([videoBlob], selectedVideo, { type: videoBlob.type });
+    const videoFile = new File([videoBlob], filename, { type: videoBlob.type || 'video/mp4' });
 
     const formData = new FormData();
     formData.append('topic', topic);
@@ -179,7 +196,8 @@ export const VideoGenerator = () => {
     formData.append('voice2', voice2);
     formData.append('gameplayVideo', videoFile);
 
-    try {const response = await axios.post(
+    try {
+      const response = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/api/video/create`, 
         formData,
         {
@@ -200,7 +218,8 @@ export const VideoGenerator = () => {
         toast.success('Video generated successfully!');
       } else {
         toast.error('Failed to generate video');
-      }    } catch (error: any) {
+      }
+    } catch (error: any) {
       console.error('Error generating video:', error);
       toast.error(`Error: ${error.response?.data?.error || 'Failed to generate video'}`);
     } finally {
@@ -226,7 +245,7 @@ export const VideoGenerator = () => {
     // Reset all state to initial values
     setTopic('');
     setDialogue([]);
-    setSelectedVideo('MINECRAFT.mp4');
+    setSelectedVideo(AVAILABLE_VIDEOS[0].file);
     setVideoUrl('');
     setCurrentStep(0);
     
