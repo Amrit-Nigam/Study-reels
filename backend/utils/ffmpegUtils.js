@@ -280,12 +280,11 @@ export function createSilentAudio(outputPath, durationSeconds = 2) {
       .input('anullsrc')
       .inputFormat('lavfi')
       .inputOptions([
-        '-r', '44100',      // Sample rate
-        '-cl', 'stereo'     // Channel layout
+        '-t', durationSeconds.toString()  // Duration first
       ])
       .outputOptions([
-        '-t', durationSeconds.toString(),  // Duration
-        '-q:a', '9',                       // Quality
+        '-ac', '2',                        // 2 audio channels (stereo)
+        '-ar', '44100',                    // Sample rate
         '-acodec', 'pcm_s16le'             // Audio codec
       ])
       .on('start', (commandLine) => {

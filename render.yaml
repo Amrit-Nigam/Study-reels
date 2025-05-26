@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: brainrot-backend
+    env: node
+    plan: free
+    buildCommand: |
+      cd backend &&
+      apt-get update &&
+      apt-get install -y espeak espeak-data &&
+      npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: FAL_KEY
+        sync: false
+      - key: MOZILLA_TTS_ENDPOINT
+        value: https://tts.mozilla.org/api/v1/tts

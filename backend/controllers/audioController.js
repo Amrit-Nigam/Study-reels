@@ -413,34 +413,48 @@ export const generateAudio = async (req, res) => {
             });
           });
         }
-        
-        // Function for local TTS fallback
+          // Function for local TTS fallback
         async function useLocalTTS(text, outputPath) {
           const { execSync } = await import('child_process');
           
-          if (process.platform === 'win32') {
-            // Using PowerShell's speech synthesis on Windows
-            console.log('Using Windows Speech Synthesis...');
-            // Properly escape all special characters for PowerShell
-            const escapedText = text
-              .replace(/"/g, '\\"')        // Double quotes
-              .replace(/[\\]/g, '\\\\')    // Backslashes
-              .replace(/'/g, "''")         // Single quotes (PowerShell uses '' to escape ')
-              .replace(/`/g, '``')         // Backticks
-              .replace(/\$/g, '`$')        // Dollar signs
-              .replace(/\r?\n/g, ' ');     // Newlines
-              
-            execSync(`powershell -c "Add-Type -AssemblyName System.Speech; $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; $synth.SetOutputToWaveFile('${outputPath.replace(/\\/g, '\\\\')}'); $synth.Speak('${escapedText}'); $synth.Dispose()"`);
-          } else if (process.platform === 'darwin') {
-            // Using say on macOS
-            console.log('Using macOS Say command...');
-            execSync(`say -o "${outputPath}" "${text.replace(/"/g, '\\"')}"`);
-          } else {
-            // Using espeak on Linux with enhanced quality parameters
-            console.log('Using Linux eSpeak...');
-            execSync(`espeak -v en-us -s 150 -p 50 -a 200 -g 10 "${text.replace(/"/g, '\\"')}" -w "${outputPath}"`);
+          try {
+            if (process.platform === 'win32') {
+              // Using PowerShell's speech synthesis on Windows
+              console.log('Using Windows Speech Synthesis...');
+              // Properly escape all special characters for PowerShell
+              const escapedText = text
+                .replace(/"/g, '\\"')        // Double quotes
+                .replace(/[\\]/g, '\\\\')    // Backslashes
+                .replace(/'/g, "''")         // Single quotes (PowerShell uses '' to escape ')
+                .replace(/`/g, '``')         // Backticks
+                .replace(/\$/g, '`$')        // Dollar signs
+                .replace(/\r?\n/g, ' ');     // Newlines
+                
+              execSync(`powershell -c "Add-Type -AssemblyName System.Speech; $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; $synth.SetOutputToWaveFile('${outputPath.replace(/\\/g, '\\\\')}'); $synth.Speak('${escapedText}'); $synth.Dispose()"`);
+            } else if (process.platform === 'darwin') {
+              // Using say on macOS
+              console.log('Using macOS Say command...');
+              execSync(`say -o "${outputPath}" "${text.replace(/"/g, '\\"')}"`);
+            } else {
+              // Linux - check if espeak is available
+              try {
+                execSync('which espeak', { stdio: 'ignore' });
+                console.log('Using Linux eSpeak...');
+                execSync(`espeak -v en-us -s 150 -p 50 -a 200 -g 10 "${text.replace(/"/g, '\\"')}" -w "${outputPath}"`);
+              } catch (whichError) {
+                // espeak not found, create a simple silent audio file using FFmpeg
+                console.log('espeak not found, creating silent audio as fallback');
+                const { createSilentAudio } = await import('../utils/ffmpegUtils.js');
+                await createSilentAudio(outputPath, 3); // 3 second silent audio
+              }
+            }
+            console.log(`Local TTS generated for line ${index + 1}`);
+          } catch (error) {
+            console.error(`Local TTS failed: ${error.message}`);
+            // Final fallback - create silent audio
+            const { createSilentAudio } = await import('../utils/ffmpegUtils.js');
+            await createSilentAudio(outputPath, 3);
           }
-          console.log(`Local TTS generated for line ${index + 1}`);
         }
         
         // Convert wav to mp3 for consistency with previous implementation
