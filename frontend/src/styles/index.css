@@ -2,7 +2,6 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -53,8 +52,6 @@
 @font-face {
   font-family: "geist";
   src: url("/fonts/GeistVariableVF.woff2") format("woff2");
-  /* font-weight: normal;
-  font-style: normal; */
 }
 
 @layer base {
@@ -65,7 +62,6 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'geist';
-
   }
 }
 
@@ -77,7 +73,6 @@ html {
   width: 10px;
 }
 
-/* Track */
 ::-webkit-scrollbar-track {
   background: #141414;
 }
@@ -91,17 +86,14 @@ html {
 }
 
 .gradient {
-  @apply bg-gradient-to-r from-[#F596D3] to-[#D247BF] text-transparent bg-clip-text
+  @apply bg-gradient-to-r from-[#F596D3] to-[#D247BF] text-transparent bg-clip-text;
 }
 
-
-/* HeroCards background shadow */
 .shadow {
   position: absolute;
   background: hsl(var(--primary) / 0%);
   border-radius: 24px;
   rotate: 35deg;
-
   width: 260px;
   top: 200px;
   height: 400px;
@@ -114,7 +106,6 @@ html {
     background: hsl(var(--primary) / 20%);
     right: 460px;
   }
-
   to {
     background: hsl(var(--primary) / 80%);
     right: 160px;
@@ -131,7 +122,6 @@ html {
       background: hsl(var(--primary) / 20%);
       right: 460px;
     }
-
     to {
       background: hsl(var(--primary) / 50%);
       right: 160px;
@@ -152,7 +142,6 @@ html {
       background: hsl(var(--primary) / 20%);
       right: 280px;
     }
-
     to {
       background: hsl(var(--primary) / 30%);
       right: 100px;
