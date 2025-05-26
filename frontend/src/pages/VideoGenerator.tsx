@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -10,6 +10,12 @@ interface DialogueLine {
   text: string;
 }
 
+// Videos available for selection
+const AVAILABLE_VIDEOS = [
+  { id: 'MINECRAFT', name: 'Minecraft', file: 'MINECRAFT.mp4', thumbnail: '/img/minecraft.jpg' },
+  { id: 'SUBWAY', name: 'Subway Surfers', file: 'SUBWAY.mp4', thumbnail: '/img/subway.jpg' }
+];
+
 // Default voice options as fallback
 const DEFAULT_VOICE_OPTIONS: VoiceOption[] = [
   { id: 'female-1', name: 'Female Voice 1', description: 'Default female voice', gender: 'female', speedFactor: 1, pitch: 0 },
@@ -19,17 +25,14 @@ const DEFAULT_VOICE_OPTIONS: VoiceOption[] = [
 ];
 
 export const VideoGenerator = () => {  
-  const [topic, setTopic] = useState('');  
-  const [voice1, setVoice1] = useState('female-1');
+  const [topic, setTopic] = useState('');    const [voice1, setVoice1] = useState('female-1');
   const [voice2, setVoice2] = useState('male-1');
   const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>(DEFAULT_VOICE_OPTIONS);
-  const [gameplayVideo, setGameplayVideo] = useState<File | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<string>('MINECRAFT.mp4');
   const [loading, setLoading] = useState(false);
-  const [videoUrl, setVideoUrl] = useState('');
-  const [dialogue, setDialogue] = useState<DialogueLine[]>([]);
+  const [videoUrl, setVideoUrl] = useState('');  const [dialogue, setDialogue] = useState<DialogueLine[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isVoiceApiAvailable, setIsVoiceApiAvailable] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Fetch available voices when component mounts
   useEffect(() => {
@@ -68,18 +71,8 @@ export const VideoGenerator = () => {
   const handleVoice1Change = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setVoice1(e.target.value);
   };
-
   const handleVoice2Change = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setVoice2(e.target.value);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.includes('video')) {
-      setGameplayVideo(file);
-    } else {
-      toast.error('Please select a valid video file');
-    }
   };
 
   const handleGenerateScript = async () => {
@@ -154,9 +147,8 @@ export const VideoGenerator = () => {
       setLoading(false);
     }
   };
-
   const handleGenerateVideo = async () => {
-    if (!topic || !voice1 || !voice2 || !gameplayVideo) {
+    if (!topic || !voice1 || !voice2 || !selectedVideo) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -164,13 +156,30 @@ export const VideoGenerator = () => {
     setLoading(true);
     toast.info('Processing your request...');
 
+    // Create a File object from the selectedVideo for the backend
+    // This simulates the file upload for the existing backend API
+    let videoBlob;
+    try {
+      // Fetch the video file from our public directory
+      const response = await fetch(`/video/${selectedVideo}`);
+      videoBlob = await response.blob();
+    } catch (error) {
+      console.error('Error fetching video file:', error);
+      toast.error('Failed to load the selected video');
+      setLoading(false);
+      return;
+    }
+
+    // Create a File object from the blob
+    const videoFile = new File([videoBlob], selectedVideo, { type: videoBlob.type });
+
     const formData = new FormData();
     formData.append('topic', topic);
     formData.append('voice1', voice1);
     formData.append('voice2', voice2);
-    formData.append('gameplayVideo', gameplayVideo);
+    formData.append('gameplayVideo', videoFile);
 
-    try {      const response = await axios.post(
+    try {const response = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/api/video/create`, 
         formData,
         {
@@ -213,12 +222,11 @@ export const VideoGenerator = () => {
       setCurrentStep(currentStep - 1);
     }
   };
-
   const handleReset = () => {
     // Reset all state to initial values
     setTopic('');
     setDialogue([]);
-    setGameplayVideo(null);
+    setSelectedVideo('MINECRAFT.mp4');
     setVideoUrl('');
     setCurrentStep(0);
     
@@ -227,11 +235,6 @@ export const VideoGenerator = () => {
     const defaultMale = voiceOptions.find(v => v.gender === 'male')?.id || 'male-1';
     setVoice1(defaultFemale);
     setVoice2(defaultMale);
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
     
     toast.info('Ready to create a new video!');
   };
@@ -318,33 +321,41 @@ export const VideoGenerator = () => {
             )}
           </div>
         );
-      
-      case 2:
+        case 2:
         return (
           <div className="space-y-4">
             <label className="block text-sm font-medium">
-              Upload gameplay video
-            </label>            <div className="flex flex-col items-center p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800/30">
-              <input
-                type="file"
-                onChange={handleFileChange}
-                accept="video/*"
-                className="hidden"
-                ref={fileInputRef}
-                disabled={loading}
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                disabled={loading}
-              >
-                Select Video File
-              </button>
-              {gameplayVideo && (
-                <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                  Selected: <span className="font-medium">{gameplayVideo.name}</span>
-                </p>
-              )}
+              Select gameplay video
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {AVAILABLE_VIDEOS.map((video) => (                <label
+                  key={video.id}
+                  className={`cursor-pointer border-2 ${
+                    selectedVideo === video.file ? 'border-blue-600' : 'border-gray-300 dark:border-gray-600'
+                  } rounded-lg p-4 flex flex-col items-center bg-gray-50 dark:bg-gray-800/30 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors`}
+                >
+                  <input
+                    type="radio"
+                    name="videoSelection"
+                    value={video.file}
+                    checked={selectedVideo === video.file}
+                    onChange={() => setSelectedVideo(video.file)}
+                    className="sr-only"
+                  />
+                  <div className="relative w-full aspect-video rounded-md mb-2 overflow-hidden">
+                    <img 
+                      src={video.thumbnail} 
+                      alt={`${video.name} thumbnail`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className={`mt-2 font-medium ${
+                    selectedVideo === video.file ? 'text-blue-600' : 'text-gray-800 dark:text-gray-200'
+                  }`}>
+                    {video.name}
+                  </span>
+                </label>
+              ))}
             </div>
           </div>
         );
@@ -356,7 +367,7 @@ export const VideoGenerator = () => {
                 <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Topic:</span> {topic}</p>
                 <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Voice for Nina:</span> {voiceOptions.find((v: VoiceOption) => v.id === voice1)?.name}</p>
                 <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Voice for Jay:</span> {voiceOptions.find((v: VoiceOption) => v.id === voice2)?.name}</p>
-                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Gameplay video:</span> {gameplayVideo?.name}</p>
+                <p className="text-gray-800 dark:text-gray-200"><span className="font-semibold text-gray-900 dark:text-gray-100">Gameplay video:</span> {selectedVideo}</p>
               </div>
             </div>
               {videoUrl && (

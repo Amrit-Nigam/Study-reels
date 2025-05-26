@@ -25,10 +25,9 @@ export const Landing = () => {
             <li className="flex items-start">
               <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">3</span>
               <span>Select <strong>realistic voices</strong> for the characters</span>
-            </li>
-            <li className="flex items-start">
+            </li>            <li className="flex items-start">
               <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">4</span>
-              <span>Upload your <strong>gameplay video</strong> for the background</span>
+              <span>Select a <strong>gameplay video</strong> for the background</span>
             </li>
             <li className="flex items-start">
               <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">5</span>

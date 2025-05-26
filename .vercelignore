@@ -1,0 +1,2 @@
+# Don't ignore video files in the public directory for Vercel deployment
+!frontend/public/video/*.mp4

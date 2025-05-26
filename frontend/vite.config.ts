@@ -29,9 +29,9 @@ export default defineConfig({
         'logo.png',
       ],
       manifest: {
-        name: 'StudyBrainrot',
-        short_name: 'StudyBrainrot',
-        description: 'StudyBrainrot - description',
+        name: 'StudyReels',
+        short_name: 'StudyReels',
+        description: 'StudyReels - description',
         icons: [
           {
             src: '/android-chrome-192x192.png',
