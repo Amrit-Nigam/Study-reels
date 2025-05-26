@@ -7,6 +7,15 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1500,
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://study-reel.onrender.com',
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  },
   plugins: [
     react(),
     VitePWA({

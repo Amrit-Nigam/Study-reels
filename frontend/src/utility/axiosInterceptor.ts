@@ -1,11 +1,15 @@
 import axios from 'axios'
 import { getLocalStorage } from './helper'
 
-const baseURL = import.meta.env.VITE_SERVER_URL + '/api'
+// Use proxy URL instead of the full server URL
+const baseURL = '/api'
 
 const axiosInstance = axios.create({
   baseURL: baseURL,
-  timeout: 5000,
+  timeout: 60000, // Increase timeout to 60 seconds
+  headers: {
+    'Content-Type': 'application/json'
+  }
 })
 
 axiosInstance.interceptors.request.use(

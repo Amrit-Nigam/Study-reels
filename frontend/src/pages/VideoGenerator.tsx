@@ -86,35 +86,72 @@ export const VideoGenerator = () => {
     if (!topic) {
       toast.error('Please enter a topic');
       return;
-    }
-
-    setLoading(true);
-    toast.info('Generating script...');
-  try {
-      const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/video/generate-script`, { topic });
+    }    setLoading(true);
+    toast.info('Generating script...');  try {
+      // Use proxy URL to bypass CORS
+      const apiUrl = '/api/video/generate-script';
+      console.log('Calling API at:', apiUrl);
+      
+      const response = await axios({
+        method: 'post',
+        url: apiUrl,
+        data: { topic },
+        timeout: 120000, // 2 minutes timeout
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
       
       if (response.data.success) {
         setDialogue(response.data.dialogue);
         toast.success('Script generated successfully!');
-        setCurrentStep(1); // Move to voice selection
-      } else {
+        setCurrentStep(1); // Move to voice selection      } else {
         toast.error('Failed to generate script');
       }    } catch (error: any) { // Type assertion for error
       console.error('Error generating script:', error);
-      // Display more detailed error message if available
-      const errorMessage = error.response?.data?.details 
-        ? `${error.response.data.error}: ${error.response.data.details}`
-        : (error.response?.data?.error || 'Failed to generate script');
       
-      // Show a more specific message for rate limit errors
-      if (error.response?.data?.isRateLimit) {
-        toast.error(`API Rate Limit Exceeded: ${error.response?.data?.suggestion || 'Please try again later.'}`, {
-          duration: 6000
+      // Try the fallback route
+      try {
+        console.log('Trying fallback route...');
+        const fallbackResponse = await axios({
+          method: 'post',
+          url: '/api/fallback/generate-script',
+          data: { topic },
+          timeout: 30000,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
         });
-      } else {
-        toast.error(`Error: ${errorMessage}`);
+        
+        if (fallbackResponse.data.success) {
+          setDialogue(fallbackResponse.data.dialogue);
+          toast.warning('Using fallback script due to connection issues.', {
+            duration: 5000
+          });
+          setCurrentStep(1); // Move to voice selection
+          return;
+        }
+      } catch (fallbackError) {
+        console.error('Fallback route also failed:', fallbackError);
       }
-    }finally {
+      
+      // Create local fallback dialogue as last resort
+      const fallbackDialogue = [
+        { "speaker": "Nina", "text": `Let's talk about ${topic}. It's a fascinating subject!` },
+        { "speaker": "Jay", "text": "I'd love to learn more about it." },
+        { "speaker": "Nina", "text": "What specific aspects are you interested in?" },
+        { "speaker": "Jay", "text": "Maybe you could start with the basics?" },
+        { "speaker": "Nina", "text": `Sure! The key things to understand about ${topic} are...` }
+      ];
+      
+      setDialogue(fallbackDialogue);
+      toast.warning('Network issue detected. Using a basic script template. You can continue or try again.', {
+        duration: 5000
+      });
+      setCurrentStep(1); // Move to voice selection despite error
+    } finally {
       setLoading(false);
     }
   };
@@ -134,15 +171,18 @@ export const VideoGenerator = () => {
     formData.append('voice2', voice2);
     formData.append('gameplayVideo', gameplayVideo);
 
-    try {
-      const response = await axios.post(
+    try {      const response = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/api/video/create`, 
         formData,
         {
           headers: {
             'Content-Type': 'multipart/form-data'
           },
-          timeout: 300000 // 5 minutes timeout for large files
+          timeout: 600000, // 10 minutes timeout for large files
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+            console.log(`Upload progress: ${percentCompleted}%`);
+          }
         }
       );
 

@@ -31,13 +31,7 @@ if (!fs.existsSync(tempDir)) {
 }
 
 // Middleware
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL, 'http://localhost:5173'] 
-    : ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true
-};
-app.use(cors(corsOptions));
+app.use(cors()); // Simple CORS setup - allow all origins
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
@@ -47,9 +41,40 @@ app.use('/temp', express.static(join(__dirname, 'temp')));
 app.use('/api/video', videoRoutes);
 app.use('/api/voice', voiceRoutes);
 
+// Fallback route for script generation (in case the main route fails)
+app.post('/api/fallback/generate-script', (req, res) => {
+  try {
+    const { topic } = req.body;
+    if (!topic) {
+      return res.status(400).json({ error: 'Topic is required' });
+    }
+    
+    // Generate a simple fallback dialogue
+    const fallbackDialogue = [
+      { "speaker": "Nina", "text": `Let's talk about ${topic}. It's a fascinating subject!` },
+      { "speaker": "Jay", "text": "I'd love to learn more about it." },
+      { "speaker": "Nina", "text": "What specific aspects are you interested in?" },
+      { "speaker": "Jay", "text": "Maybe you could start with the basics?" },
+      { "speaker": "Nina", "text": `Sure! The key things to understand about ${topic} are...` }
+    ];
+    
+    return res.status(200).json({ 
+      success: true, 
+      dialogue: fallbackDialogue,
+      message: 'Fallback script generated' 
+    });
+  } catch (error) {
+    console.error('Error in fallback route:', error);
+    return res.status(500).json({ error: 'Failed to generate fallback script' });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'API is running'
+  });
 });
 
 // System check endpoint for troubleshooting
