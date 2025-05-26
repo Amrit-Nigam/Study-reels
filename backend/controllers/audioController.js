@@ -54,30 +54,53 @@ async function generateElevenLabsAudio(text, voiceId) {
     // Get the ElevenLabs voice ID or use a default
     const elevenLabsVoiceId = elevenLabsVoiceMap[voiceId] || elevenLabsVoiceMap['female-1'];
     
-    // Prepare request body
+    // First do a ping test to check API key validity and account status
+    try {
+      const accountResponse = await axios({
+        method: 'get',
+        url: `${ELEVENLABS_API_URL}/user/subscription`,
+        headers: {
+          'xi-api-key': process.env.ELEVENLABS_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        timeout: 5000 // 5 second timeout for quick check
+      });
+      
+      console.log(`ElevenLabs account status: ${accountResponse.status}`);
+      console.log(`Character quota: ${accountResponse.data?.character_count || 'unknown'} / ${accountResponse.data?.character_limit || 'unknown'}`);
+    } catch (pingError) {
+      console.error(`ElevenLabs account check failed: ${pingError.message}`);
+      if (pingError.response) {
+        console.error('Account status response:', pingError.response.status, pingError.response.data);
+      }
+      throw new Error(`ElevenLabs API key validation failed: ${pingError.message}`);
+    }
+    
+    // Prepare request body with updated model ID
     const requestBody = {
       text: text,
-      model_id: 'eleven_monolingual_v1',
+      model_id: 'eleven_multilingual_v2', // Updated model to latest version
       voice_settings: {
         stability: 0.5,
         similarity_boost: 0.75
       }
     };
     
-    // Make API request to ElevenLabs
+    // Make API request to ElevenLabs with updated headers and options
     const response = await axios({
       method: 'post',
       url: `${ELEVENLABS_API_URL}/text-to-speech/${elevenLabsVoiceId}`,
       headers: {
         'Accept': 'audio/mpeg',
         'Content-Type': 'application/json',
-        'xi-api-key': process.env.ELEVENLABS_API_KEY
+        'xi-api-key': process.env.ELEVENLABS_API_KEY,
+        'User-Agent': 'Brainrot-Video-Generator/1.0' // Adding user agent to identify the app
       },
       data: requestBody,
-      responseType: 'arraybuffer'
+      responseType: 'arraybuffer',
+      timeout: 30000 // 30 second timeout for audio generation
     });
-    
-    // Create temporary file path
+      // Create temporary file path
     const tempFilePath = path.join(__dirname, '../temp', `eleven_${Date.now()}.mp3`);
     
     // Write the audio buffer to a file
@@ -242,8 +265,7 @@ export const generateAudio = async (req, res) => {
     }
     
     // Process each line of dialogue
-    const audioFiles = [];
-      // Map voice IDs to Mozilla TTS voices
+    const audioFiles = [];      // Map voice IDs to Mozilla TTS voices
     // Mozilla TTS voice references: https://github.com/mozilla/TTS/wiki/Released-Models
     const voiceMap = {
       'female-1': { name: 'en/vctk_low/p225', language: 'en' },  // VCTK female voice 1
@@ -255,8 +277,35 @@ export const generateAudio = async (req, res) => {
       'male-3': { name: 'en/vctk_low/p256', language: 'en' },    // Additional VCTK male voice
       'male-4': { name: 'en/vctk_low/p261', language: 'en' }     // Additional VCTK male voice
     };
-      // Check if TTS APIs are available
-    const useElevenLabs = !!process.env.ELEVENLABS_API_KEY;
+      
+    // Check if TTS APIs are available
+    let elevenLabsServiceAvailable = false;
+    let useElevenLabs = false;
+    
+    // Verify ElevenLabs service availability
+    if (process.env.ELEVENLABS_API_KEY) {
+      try {
+        // Do a quick check if ElevenLabs is working
+        await axios({
+          method: 'get',
+          url: `${ELEVENLABS_API_URL}/voices`,
+          headers: {
+            'xi-api-key': process.env.ELEVENLABS_API_KEY,
+            'Content-Type': 'application/json'
+          },
+          timeout: 5000 // 5 second timeout
+        });
+        
+        // If we get here, ElevenLabs is working
+        elevenLabsServiceAvailable = true;
+        useElevenLabs = true;
+        console.log('ElevenLabs API connectivity verified');
+      } catch (elevenLabsCheckError) {
+        console.warn(`ElevenLabs service check failed: ${elevenLabsCheckError.message}`);
+        useElevenLabs = false;
+      }
+    }
+    
     const useFalAi = !useElevenLabs && !!process.env.FAL_KEY;
     
     if (useElevenLabs) {
