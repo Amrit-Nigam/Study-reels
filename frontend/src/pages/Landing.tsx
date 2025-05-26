@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { BeamsBackground } from '@/components/ui/beams-background';
 import { RotatingText } from '@/components/ui/rotating-text';
 export const Landing = () => {
@@ -20,9 +19,6 @@ export const Landing = () => {
         <div className="container max-w-6xl px-4 py-8 text-center flex-1">
           {/* Hero Section */}
           <div className="mb-16 pt-8">
-            <Badge variant="secondary" className="mb-6 bg-purple-900/30 text-purple-300 border-purple-500/30 backdrop-blur-sm">
-              🚀 AI-Powered Video Generation
-            </Badge>
             <div className="mb-6"></div>
             <h1 className="text-7xl md:text-8xl font-bold relative z-20 flex justify-center items-center gap-2">
               <span className="bg-gradient-to-r from-white/90 via-purple-200/90 to-blue-200/90 bg-clip-text text-transparent backdrop-blur-sm">Study</span>

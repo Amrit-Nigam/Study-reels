@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { getAvailableVoices, VoiceOption } from '@/services/voiceService';
 import { Card, CardContent} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { BeamsBackground } from '@/components/ui/beams-background';
 import { Progress } from '@/components/ui/progress';
 
@@ -504,7 +503,7 @@ export const VideoGenerator = () => {
                     <span className="text-sm text-slate-300">Uploading video</span>
                     <span className="text-sm font-medium text-purple-300">{uploadProgress}%</span>
                   </div>
-                  <Progress value={uploadProgress} className="h-2 bg-slate-700/50" indicatorClassName="bg-gradient-to-r from-purple-600 to-blue-600" />
+                  <Progress value={uploadProgress} className="h-2 bg-slate-700/50" />
                 </div>
                 
                 {/* Processing progress section - only show after upload complete */}
@@ -514,8 +513,7 @@ export const VideoGenerator = () => {
                       <span className="text-sm text-slate-300">{processingStage}</span>
                       <span className="text-sm font-medium text-purple-300">{Math.round(processingProgress)}%</span>
                     </div>
-                    <Progress value={processingProgress} className="h-2 bg-slate-700/50" indicatorClassName="bg-gradient-to-r from-green-600 to-emerald-600" />
-                    
+                    <Progress value={processingProgress} className="h-2 bg-slate-700/50" />
                     {/* Fun loading messages */}
                     <div className="mt-4 text-center">
                       <p className="text-sm text-slate-400 italic animate-pulse">

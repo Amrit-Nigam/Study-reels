@@ -17,7 +17,8 @@ module.exports = {
   prefix: "",
   theme: {
     fontFamily: {
-      geist: ['geist', 'sans-serif']
+      geist: ['geist', 'sans-serif'],
+      virgil: ['Virgil', 'sans-serif'],
     },
     container: {
       center: true,
