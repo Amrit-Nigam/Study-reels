@@ -35,6 +35,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
+app.use('/temp', express.static(join(__dirname, 'temp')));
 
 // Routes
 app.use('/api/video', videoRoutes);
