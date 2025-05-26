@@ -277,13 +277,24 @@ export const generateAudio = async (req, res) => {
       'male-3': { name: 'en/vctk_low/p256', language: 'en' },    // Additional VCTK male voice
       'male-4': { name: 'en/vctk_low/p261', language: 'en' }     // Additional VCTK male voice
     };
-      
-    // Check if TTS APIs are available
-    let elevenLabsServiceAvailable = false;
+        // Check if TTS APIs are available - prioritize FAL.ai over ElevenLabs
+    let useFalAi = false;
     let useElevenLabs = false;
     
-    // Verify ElevenLabs service availability
-    if (process.env.ELEVENLABS_API_KEY) {
+    // First check FAL.ai availability (primary choice)
+    if (process.env.FAL_KEY) {
+      try {
+        // FAL.ai doesn't have a simple ping endpoint, so we'll assume it's available if the key is set
+        useFalAi = true;
+        console.log('FAL.ai API key found - using FAL.ai for text-to-speech');
+      } catch (falCheckError) {
+        console.warn(`FAL.ai service check failed: ${falCheckError.message}`);
+        useFalAi = false;
+      }
+    }
+    
+    // Only check ElevenLabs if FAL.ai is not available
+    if (!useFalAi && process.env.ELEVENLABS_API_KEY) {
       try {
         // Do a quick check if ElevenLabs is working
         await axios({
@@ -297,21 +308,18 @@ export const generateAudio = async (req, res) => {
         });
         
         // If we get here, ElevenLabs is working
-        elevenLabsServiceAvailable = true;
         useElevenLabs = true;
-        console.log('ElevenLabs API connectivity verified');
+        console.log('ElevenLabs API connectivity verified - using as fallback');
       } catch (elevenLabsCheckError) {
         console.warn(`ElevenLabs service check failed: ${elevenLabsCheckError.message}`);
         useElevenLabs = false;
       }
     }
     
-    const useFalAi = !useElevenLabs && !!process.env.FAL_KEY;
-    
-    if (useElevenLabs) {
-      console.log('Using ElevenLabs API for text-to-speech');
-    } else if (useFalAi) {
+    if (useFalAi) {
       console.log('Using FAL.ai API for text-to-speech');
+    } else if (useElevenLabs) {
+      console.log('Using ElevenLabs API for text-to-speech');
     } else {
       console.log('No TTS API keys set, falling back to Mozilla TTS or local TTS');
     }
@@ -369,11 +377,41 @@ export const generateAudio = async (req, res) => {
       console.log(`Generating audio for ${line.speaker} using voice ${voiceId}`);
       
       // Generate output filename
-      const outputFile = path.join(tempDir, `line_${index + 1}.wav`);
-        try {
+      const outputFile = path.join(tempDir, `line_${index + 1}.wav`);      try {
         console.log(`Generating audio for line ${index + 1}`);
         
-        if (useElevenLabs) {
+        if (useFalAi) {          
+          try {
+            // Generate audio using FAL.ai with the specific voice ID
+            const audioUrl = await generateFalAudio(line.text, line.speaker, voiceId);
+            
+            // Download the audio file
+            await downloadAudio(audioUrl, outputFile);
+            console.log(`FAL.ai audio downloaded for line ${index + 1}`);
+          } catch (falError) {
+            console.error(`FAL.ai API error: ${falError.message}. Trying fallbacks...`);
+            
+            // Try ElevenLabs if available as fallback
+            if (useElevenLabs) {
+              try {
+                const audioFilePath = await generateElevenLabsAudio(line.text, voiceId);
+                fs.copyFileSync(audioFilePath, outputFile);
+                fs.unlinkSync(audioFilePath);
+              } catch (elevenLabsError) {
+                console.error(`ElevenLabs fallback also failed: ${elevenLabsError.message}`);
+                if (isMozillaTTSAvailable) {
+                  await useMozillaTTS(line.text, mozillaVoice, outputFile, mozillaTTSEndpoint);
+                } else {
+                  await useLocalTTS(line.text, outputFile);
+                }
+              }
+            } else if (isMozillaTTSAvailable) {
+              await useMozillaTTS(line.text, mozillaVoice, outputFile, mozillaTTSEndpoint);
+            } else {
+              await useLocalTTS(line.text, outputFile);
+            }
+          }
+        } else if (useElevenLabs) {
           try {
             // Generate audio using ElevenLabs with the specific voice ID
             const audioFilePath = await generateElevenLabsAudio(line.text, voiceId);
@@ -389,28 +427,7 @@ export const generateAudio = async (req, res) => {
           } catch (elevenLabsError) {
             console.error(`ElevenLabs API error: ${elevenLabsError.message}. Trying fallbacks...`);
             
-            // Try FAL.ai if available
-            if (useFalAi) {
-              const audioUrl = await generateFalAudio(line.text, line.speaker, voiceId);
-              await downloadAudio(audioUrl, outputFile);
-            } else if (isMozillaTTSAvailable) {
-              await useMozillaTTS(line.text, mozillaVoice, outputFile, mozillaTTSEndpoint);
-            } else {
-              await useLocalTTS(line.text, outputFile);
-            }
-          }
-        } else if (useFalAi) {          
-          try {
-            // Generate audio using FAL.ai with the specific voice ID
-            const audioUrl = await generateFalAudio(line.text, line.speaker, voiceId);
-            
-            // Download the audio file
-            await downloadAudio(audioUrl, outputFile);
-            console.log(`FAL.ai audio downloaded for line ${index + 1}`);
-          } catch (falError) {
-            console.error(`FAL.ai API error: ${falError.message}. Falling back to alternate TTS...`);
-            
-            // If FAL.ai fails, try Mozilla TTS or local fallback
+            // If ElevenLabs fails, try Mozilla TTS or local fallback
             if (isMozillaTTSAvailable) {
               await useMozillaTTS(line.text, mozillaVoice, outputFile, mozillaTTSEndpoint);
             } else {
