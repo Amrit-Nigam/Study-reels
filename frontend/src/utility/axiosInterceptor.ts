@@ -1,8 +1,8 @@
 import axios from 'axios'
 import { getLocalStorage } from './helper'
 
-// Use proxy URL instead of the full server URL
-const baseURL = '/api'
+// Use the server URL from environment variables
+const baseURL = import.meta.env.VITE_SERVER_URL || '/api'
 
 const axiosInstance = axios.create({
   baseURL: baseURL,

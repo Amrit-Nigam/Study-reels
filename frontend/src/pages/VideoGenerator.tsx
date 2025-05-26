@@ -88,8 +88,8 @@ export const VideoGenerator = () => {
       return;
     }    setLoading(true);
     toast.info('Generating script...');  try {
-      // Use proxy URL to bypass CORS
-      const apiUrl = '/api/video/generate-script';
+      // Use absolute URL for production deployment
+      const apiUrl = `${import.meta.env.VITE_SERVER_URL}/api/video/generate-script`;
       console.log('Calling API at:', apiUrl);
       
       const response = await axios({
@@ -112,11 +112,10 @@ export const VideoGenerator = () => {
       console.error('Error generating script:', error);
       
       // Try the fallback route
-      try {
-        console.log('Trying fallback route...');
+      try {        console.log('Trying fallback route...');
         const fallbackResponse = await axios({
           method: 'post',
-          url: '/api/fallback/generate-script',
+          url: `${import.meta.env.VITE_SERVER_URL}/api/fallback/generate-script`,
           data: { topic },
           timeout: 30000,
           headers: {
