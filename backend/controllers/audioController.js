@@ -241,7 +241,7 @@ function formatDuration(milliseconds) {
 
 export const generateAudio = async (req, res) => {
   try {
-    const { dialogue, voice1, voice2 } = req.body;
+    const { dialogue, voice1, voice2, sessionId } = req.body;
     
     if (!dialogue || !voice1 || !voice2) {
       return res.status(400).json({ 
@@ -249,13 +249,16 @@ export const generateAudio = async (req, res) => {
       });
     }
     
-    const tempDir = path.join(__dirname, '../temp');
+    // Generate a unique session ID if not provided
+    const userSessionId = sessionId || `session-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    
+    const tempDir = path.join(__dirname, '../temp', userSessionId);
     const outputDir = path.join(__dirname, '../uploads');
     const modelsDir = path.join(__dirname, '../', process.env.COQUI_MODEL_DIR || 'models');
-    
-    // Ensure directories exist
+      // Ensure directories exist
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
+      console.log(`Created session-specific temp directory: ${tempDir}`);
     }
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
@@ -373,11 +376,11 @@ export const generateAudio = async (req, res) => {
       
       // For Mozilla TTS fallback
       const mozillaVoice = voiceMap[voiceId] || voiceMap['female-1'];  // Fallback to default voice
+        console.log(`Generating audio for ${line.speaker} using voice ${voiceId}`);
       
-      console.log(`Generating audio for ${line.speaker} using voice ${voiceId}`);
-      
-      // Generate output filename
-      const outputFile = path.join(tempDir, `line_${index + 1}.wav`);      try {
+      // Generate output filename with session ID to prevent mixups
+      const outputFile = path.join(tempDir, `line_${userSessionId}_${index + 1}.wav`);
+      try {
         console.log(`Generating audio for line ${index + 1}`);
         
         if (useFalAi) {          
@@ -578,12 +581,11 @@ export const generateAudio = async (req, res) => {
         // Instead of completely failing, let's try to create a silent audio file as fallback
         try {
           console.log(`Creating fallback silent audio for line ${index + 1}`);
-          
-          // Import the createSilentAudio utility
+            // Import the createSilentAudio utility
           const { createSilentAudio } = await import('../utils/audioUtils.js');
           
-          // Create a 2-second silent audio file
-          const silentFilePath = path.join(tempDir, `silent_${index + 1}.wav`);
+          // Create a 2-second silent audio file with session ID to prevent conflicts
+          const silentFilePath = path.join(tempDir, `silent_${userSessionId}_${index + 1}.wav`);
           await createSilentAudio(silentFilePath, 2, path.join(__dirname, '..'));
           
           // Add this silent file to our audio files
@@ -601,16 +603,15 @@ export const generateAudio = async (req, res) => {
           // If even that fails, just skip this line
         }
       }
-    }
-    // End of the dialogue processing loop
+    }    // End of the dialogue processing loop
     
     // Generate a timestamp for the final file
     const timestamp = Date.now();
-    const mergedAudioFilename = `merged_audio_${timestamp}.mp3`;
+    const mergedAudioFilename = `merged_audio_${userSessionId}_${timestamp}.mp3`;
     const mergedAudioPath = path.join(outputDir, mergedAudioFilename);
     
     // Generate SRT file for subtitles
-    const srtFilename = `dialogue_${timestamp}.srt`;
+    const srtFilename = `dialogue_${userSessionId}_${timestamp}.srt`;
     const srtFilePath = path.join(outputDir, srtFilename);
     
     let srtContent = '';

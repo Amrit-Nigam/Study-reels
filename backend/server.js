@@ -102,7 +102,7 @@ app.get('/api/system-report', async (req, res) => {
 
 // Start server
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
-app.listen(PORT, HOST, () => {
+app.listen(PORT, HOST, async () => {
   console.log(`Server running on ${HOST}:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   
@@ -111,4 +111,29 @@ app.listen(PORT, HOST, () => {
   console.log(`- Gemini API: ${process.env.GEMINI_API_KEY ? 'Available' : 'Not configured'}`);
   console.log(`- ElevenLabs API: ${process.env.ELEVENLABS_API_KEY ? 'Available' : 'Not configured'}`);
   console.log(`- FAL.ai API: ${process.env.FAL_KEY ? 'Available' : 'Not configured'}`);
+  
+  // Schedule periodic cleanup of old temp files
+  try {
+    // Import the cleanup utility
+    const { cleanupOldTempFiles } = await import('./utils/cleanupUtils.js');
+    
+    // Run cleanup on server start
+    const initialCleanup = await cleanupOldTempFiles();
+    console.log('Initial cleanup result:', initialCleanup);
+    
+    // Schedule cleanup to run every 6 hours
+    const CLEANUP_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+    setInterval(async () => {
+      try {
+        const result = await cleanupOldTempFiles();
+        console.log(`Scheduled cleanup result:`, result);
+      } catch (error) {
+        console.error('Error in scheduled cleanup:', error);
+      }
+    }, CLEANUP_INTERVAL);
+    
+    console.log(`Automated cleanup scheduled to run every 6 hours`);
+  } catch (error) {
+    console.error('Failed to set up automated cleanup:', error);
+  }
 });

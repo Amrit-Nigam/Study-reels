@@ -38,10 +38,14 @@ export const generateVideo = async (req, res) => {
         error: 'Missing required parameters. audioPath and gameplayVideo are required.' 
       });
     }
-    
-    // Define file paths
+      // Define file paths
     const uploadsDir = path.join(__dirname, '../uploads');
     const gameplayPath = gameplayVideo.path;
+    
+    // Generate a unique session ID for this request
+    const sessionId = req.body.sessionId || `session-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    
+    // Add sessionId to paths to prevent file mixups between users
     const audioFilePath = path.join(uploadsDir, audioPath);
     
     // Generate SRT subtitle path from audioPath 
@@ -73,9 +77,8 @@ export const generateVideo = async (req, res) => {
     if (!audioValid) {
       return res.status(400).json({ error: 'Audio file is corrupted or invalid' });
     }
-    
-    // Create output filename
-    const outputFilename = `final_video_${Date.now()}.mp4`;
+      // Create output filename with session ID to prevent mixups
+    const outputFilename = `final_video_${sessionId}_${Date.now()}.mp4`;
     const outputPath = path.join(uploadsDir, outputFilename);
     
     console.log('=== VIDEO GENERATION STARTING ===');

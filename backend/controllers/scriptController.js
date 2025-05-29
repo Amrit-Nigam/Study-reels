@@ -12,11 +12,15 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export const generateScript = async (req, res) => {
   try {
-    const { topic } = req.body;    if (!topic) {
+    const { topic, sessionId } = req.body;
+    
+    if (!topic) {
       return res.status(400).json({ error: 'Topic is required' });
     }
     
-    console.log(`Generating script for topic: ${topic}`);
+    // Log with session ID if available
+    const logPrefix = sessionId ? `[${sessionId}]` : '';
+    console.log(`${logPrefix} Generating script for topic: ${topic}`);
     
     // Try with gemini-pro first (most widely available model)
     const modelName = 'gemini-2.0-flash';

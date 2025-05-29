@@ -2,6 +2,7 @@ import express from 'express';
 import { generateScript } from '../controllers/scriptController.js';
 import { generateAudio } from '../controllers/audioController.js';
 import { generateVideo } from '../controllers/videoController.js';
+import { cleanupSession } from '../controllers/cleanupController.js';
 import multer from 'multer';
 import { join } from 'path';
 import { dirname } from 'path';
@@ -29,18 +30,40 @@ const router = express.Router();
 router.post('/generate-script', generateScript);
 
 // Generate audio from a script
-router.post('/generate-audio', generateAudio);
+router.post('/generate-audio', (req, res) => {
+  // Add a session ID if not provided
+  if (!req.body.sessionId) {
+    req.body.sessionId = `session-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    console.log(`Adding session ID for direct audio generation: ${req.body.sessionId}`);
+  }
+  
+  // Call the audio controller
+  generateAudio(req, res);
+});
 
 // Generate final video (requires a gameplay video upload)
-router.post('/generate-video', upload.single('gameplayVideo'), generateVideo);
+router.post('/generate-video', upload.single('gameplayVideo'), (req, res) => {
+  // Add a session ID if not provided
+  if (!req.body.sessionId) {
+    req.body.sessionId = `session-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    console.log(`Adding session ID for direct video generation: ${req.body.sessionId}`);
+  }
+  
+  // Call the video controller
+  generateVideo(req, res);
+});
 
 // All-in-one endpoint to generate a complete video
 router.post('/create', upload.single('gameplayVideo'), async (req, res) => {
-  try {
+  try {    // Generate a unique session ID for this request
+    const sessionId = `session-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    console.log(`Creating new video with session ID: ${sessionId}`);
+    
     // 1. First generate the script
     const scriptReq = { 
       body: {
-        topic: req.body.topic
+        topic: req.body.topic,
+        sessionId: sessionId
       }
     };
     const scriptRes = {
@@ -59,13 +82,13 @@ router.post('/create', upload.single('gameplayVideo'), async (req, res) => {
     if (scriptRes.statusCode !== 200) {
       return res.status(scriptRes.statusCode).json(scriptRes.data);
     }
-    
-    // 2. Generate audio from the script
+      // 2. Generate audio from the script
     const audioReq = {
       body: {
         dialogue: scriptRes.data.dialogue,
         voice1: req.body.voice1,
-        voice2: req.body.voice2
+        voice2: req.body.voice2,
+        sessionId: sessionId
       }
     };
     
@@ -85,12 +108,12 @@ router.post('/create', upload.single('gameplayVideo'), async (req, res) => {
     if (audioRes.statusCode !== 200) {
       return res.status(audioRes.statusCode).json(audioRes.data);
     }
-    
-    // 3. Generate the final video
+      // 3. Generate the final video
     const videoReq = {
       body: {
         audioPath: audioRes.data.audioPath,
-        dialogue: scriptRes.data.dialogue
+        dialogue: scriptRes.data.dialogue,
+        sessionId: sessionId
       },
       file: req.file
     };
@@ -105,8 +128,7 @@ router.post('/create', upload.single('gameplayVideo'), async (req, res) => {
         return this;
       }
     };
-    
-    await generateVideo(videoReq, videoRes);
+      await generateVideo(videoReq, videoRes);
     
     return res.status(videoRes.statusCode).json(videoRes.data);
     
@@ -115,5 +137,8 @@ router.post('/create', upload.single('gameplayVideo'), async (req, res) => {
     return res.status(500).json({ error: 'Failed to create video', details: error.message });
   }
 });
+
+// Cleanup temporary files for a session
+router.post('/cleanup', cleanupSession);
 
 export default router;

@@ -53,6 +53,8 @@ export const VideoGenerator = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStage, setProcessingStage] = useState('');
+  // Add session ID state to keep it consistent across requests
+  const [sessionId] = useState<string>(`session-${Date.now()}-${Math.floor(Math.random() * 1000000)}`);
   
   // Fetch available voices when component mounts
   useEffect(() => {
@@ -154,7 +156,7 @@ export const VideoGenerator = () => {
       const response = await axios({
         method: 'post',
         url: apiUrl,
-        data: { topic },
+        data: { topic, sessionId }, // Include session ID in request
         timeout: 120000, // 2 minutes timeout
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +180,7 @@ export const VideoGenerator = () => {
         const fallbackResponse = await axios({
           method: 'post',
           url: `${import.meta.env.VITE_SERVER_URL}/api/fallback/generate-script`,
-          data: { topic },
+          data: { topic, sessionId }, // Include session ID in request
           timeout: 30000,
           headers: {
             'Content-Type': 'application/json',
@@ -253,11 +255,13 @@ export const VideoGenerator = () => {
     // Create a File object from the blob
     const videoFile = new File([videoBlob], filename, { type: videoBlob.type || 'video/mp4' });
 
-    const formData = new FormData();
-    formData.append('topic', topic);
+    const formData = new FormData();    formData.append('topic', topic);
     formData.append('voice1', voice1);
     formData.append('voice2', voice2);
     formData.append('gameplayVideo', videoFile);
+    formData.append('sessionId', sessionId);
+    
+    console.log(`Using session ID for video generation: ${sessionId}`);
 
     try {
       const response = await axios.post(
@@ -274,14 +278,23 @@ export const VideoGenerator = () => {
             console.log(`Upload progress: ${percentCompleted}%`);
           }
         }
-      );
-
-      if (response.data.success) {
+      );      if (response.data.success) {
         // Set processing to 100% when complete
         setProcessingProgress(100);
         const fullVideoUrl = `${import.meta.env.VITE_SERVER_URL}${response.data.videoUrl}`;
         setVideoUrl(fullVideoUrl);
         toast.success('Video generated successfully!');
+        
+        // Clean up session files on the server to prevent buildup of temporary files
+        try {
+          await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/video/cleanup`, {
+            sessionId: sessionId
+          });
+          console.log('Session cleanup successful');
+        } catch (cleanupError) {
+          console.error('Failed to clean up session:', cleanupError);
+          // Non-critical error, don't show to user
+        }
       } else {
         toast.error('Failed to generate video');
       }
