@@ -661,9 +661,14 @@ export const VideoGenerator = () => {
           <div className="container mx-auto px-4 text-center">
             <p className="text-slate-400 text-sm backdrop-blur-sm">
               Made with <span className="text-red-500 animate-pulse">❤️</span> by{" "}
-              <span className="text-purple-300 font-medium hover:text-purple-200 transition-colors duration-200">
-                Amrit-Nigam
-              </span>
+                <a 
+                  href="https://github.com/Amrit-Nigam" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-purple-300 font-medium hover:text-purple-200 transition-colors duration-200"
+                >
+                  Amrit-Nigam
+                </a>
             </p>
           </div>
         </footer>
