@@ -574,11 +574,10 @@ export const VideoGenerator = () => {
         <BeamsBackground intensity="strong" className="w-full h-full">
         </BeamsBackground>
       </div>
-      
-      {/* Rest of your component remains the same */}
+        {/* Rest of your component remains the same */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          <div className="text-center mb-8">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 max-w-4xl">
+          <div className="text-center mb-4 sm:mb-8">
             {/* <Badge variant="secondary" className="mb-4 bg-purple-900/30 text-purple-300 border-purple-500/30 backdrop-blur-sm">
               🧠 AI-Powered Video Creator
             </Badge> */}
