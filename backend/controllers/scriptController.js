@@ -44,7 +44,8 @@ export const generateScript = async (req, res) => {
       { "speaker": "Nina", "text": "It's basically an automatic memory management system that identifies and removes objects that aren't being used anymore." }
     ]
     
-    Only respond with the properly formatted JSON array.`;
+    Only respond with the properly formatted JSON array.
+    ONLY 10LINES ALSO SHORT OF DIALOGUE, NO MORE, NO LESS.`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
