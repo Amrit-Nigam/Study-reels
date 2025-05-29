@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import Topic from '../models/Topic.js';
 
 dotenv.config();
 
@@ -21,6 +23,23 @@ export const generateScript = async (req, res) => {
     // Log with session ID if available
     const logPrefix = sessionId ? `[${sessionId}]` : '';
     console.log(`${logPrefix} Generating script for topic: ${topic}`);
+      // Save the topic to MongoDB
+    try {
+      const newTopic = new Topic({
+        text: topic,
+        sessionId: sessionId || undefined
+      });
+      
+      if (mongoose.connection.readyState === 1) { // Check if MongoDB is connected
+        await newTopic.save();
+        console.log(`${logPrefix} Topic saved to database with ID: ${newTopic._id}`);
+      } else {
+        console.log(`${logPrefix} MongoDB not connected, skipping topic save`);
+      }
+    } catch (dbError) {
+      console.error('Error saving topic to database:', dbError);
+      // Continue with script generation even if saving to DB fails
+    }
     
     // Try with gemini-pro first (most widely available model)
     const modelName = 'gemini-2.0-flash';
@@ -83,14 +102,32 @@ export const generateScript = async (req, res) => {
       message: 'Script generated successfully' 
     });  } catch (error) {
     console.error('Error generating script:', error);
+      // Try to save the topic to MongoDB even in error case
+    try {
+      if (req.body && req.body.topic) {
+        const newTopic = new Topic({
+          text: req.body.topic,
+          sessionId: req.body.sessionId || undefined
+        });
+        
+        if (mongoose.connection.readyState === 1) { // Check if MongoDB is connected
+          await newTopic.save();
+          console.log(`Topic saved to database on error path with ID: ${newTopic._id}`);
+        } else {
+          console.log('MongoDB not connected, skipping topic save on error path');
+        }
+      }
+    } catch (dbError) {
+      console.error('Error saving topic to database on error path:', dbError);
+    }
     
     // Return a fallback response instead of an error
     const fallbackDialogue = [
-      { "speaker": "Nina", "text": `Let's talk about ${topic}. It's a fascinating subject!` },
+      { "speaker": "Nina", "text": `Let's talk about ${req.body.topic || 'this topic'}. It's a fascinating subject!` },
       { "speaker": "Jay", "text": "I'd love to learn more about it." },
       { "speaker": "Nina", "text": "What specific aspects are you interested in?" },
       { "speaker": "Jay", "text": "Maybe you could start with the basics?" },
-      { "speaker": "Nina", "text": `Sure! The key things to understand about ${topic} are...` }
+      { "speaker": "Nina", "text": `Sure! The key things to understand about ${req.body.topic || 'this topic'} are...` }
     ];
     
     return res.status(200).json({ 

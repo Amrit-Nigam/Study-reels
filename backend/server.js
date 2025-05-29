@@ -2,8 +2,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import videoRoutes from './routes/video.js';
 import voiceRoutes from './routes/voice.js';
+import topicRoutes from './routes/topic.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
@@ -13,6 +15,16 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/brainrot';
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    console.warn('Application will continue without MongoDB functionality');
+    console.warn('Topics will not be saved to a database');
+  });
 
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
@@ -40,6 +52,7 @@ app.use('/temp', express.static(join(__dirname, 'temp')));
 // Routes
 app.use('/api/video', videoRoutes);
 app.use('/api/voice', voiceRoutes);
+app.use('/api/topics', topicRoutes);
 
 // Fallback route for script generation (in case the main route fails)
 app.post('/api/fallback/generate-script', (req, res) => {
