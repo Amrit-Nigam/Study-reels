@@ -68,7 +68,7 @@ export const generateScript = async (req, res) => {
     ]
     
     Only respond with the properly formatted JSON array.
-    ONLY 8 LINES ALSO SHORT OF DIALOGUE EACH LINE 8-11 WORDS ONLY , NO MORE, NO LESS.`;
+    ONLY 8 LINES ALSO SHORT DIALOGUE EACH LINE 8-11 WORDS ONLY , NO MORE, NO LESS.`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
