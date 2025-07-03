@@ -42,7 +42,7 @@ export const generateScript = async (req, res) => {
     }
     
     // Try with gemini-pro first (most widely available model)
-    const modelName = 'gemini-2.0-flash';
+    const modelName = 'gemini-1.5-flash';
     console.log(`Using ${modelName} model`);
     const model = genAI.getGenerativeModel({ model: modelName });
 
