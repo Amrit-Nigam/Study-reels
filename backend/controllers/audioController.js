@@ -8,17 +8,11 @@ import fsExtra from 'fs-extra';
 import https from 'https';
 import { promisify } from 'util';
 import { pipeline as pipelineCallback } from 'stream';
-import { fal } from '@fal-ai/client';
-
 const pipeline = promisify(pipelineCallback);
 dotenv.config();
 
-// Configure fal.ai client if FAL_KEY is set
-if (process.env.FAL_KEY) {
-  fal.config({
-    credentials: process.env.FAL_KEY
-  });
-}
+// Nari TTS API configuration
+const NARI_TTS_API_URL = 'https://api.neets.ai/v1/tts';
 
 // ElevenLabs API configuration
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
@@ -117,87 +111,270 @@ async function generateElevenLabsAudio(text, voiceId) {
   }
 }
 
-// Helper function to generate audio using FAL.ai API
-async function generateFalAudio(text, speaker, voiceId) {
+// Helper function to generate audio using Nari TTS API
+async function generateNariAudio(text, speaker, voiceId) {
   try {
-    if (!process.env.FAL_KEY) {
-      throw new Error('FAL_KEY environment variable not set');
+    // First try the API if key is available
+    if (process.env.NARI_API_KEY) {
+      console.log(`Generating audio with Nari TTS API for ${speaker} using voice ${voiceId}`);
+      
+      // Map voice IDs to Nari TTS voice settings
+      const voiceSettings = {
+        'female-1': {
+          voice_id: 'vits',
+          model: 'ar-diff-50k',
+          speed: 1.0,
+          pitch: 0.0
+        },
+        'female-2': {
+          voice_id: 'vits',
+          model: 'ar-diff-50k-2',
+          speed: 0.9,
+          pitch: 0.1
+        },
+        'female-3': {
+          voice_id: 'vits',
+          model: 'ar-diff-50k-3',
+          speed: 1.1,
+          pitch: -0.1
+        },
+        'female-4': {
+          voice_id: 'vits',
+          model: 'ar-diff-50k-4',
+          speed: 1.0,
+          pitch: 0.2
+        },
+        'male-1': {
+          voice_id: 'vits',
+          model: 'ar-diff-50k-male',
+          speed: 1.0,
+          pitch: -0.2
+        },
+        'male-2': {
+          voice_id: 'vits',
+          model: 'ar-diff-50k-male-2',
+          speed: 0.95,
+          pitch: 0.0
+        },
+        'male-3': {
+          voice_id: 'vits',
+          model: 'ar-diff-50k-male-3',
+          speed: 1.05,
+          pitch: -0.1
+        },
+        'male-4': {
+          voice_id: 'vits',
+          model: 'ar-diff-50k-male-4',
+          speed: 1.0,
+          pitch: 0.1
+        }
+      };
+      
+      // Get voice settings based on voiceId or use default
+      const voiceSetting = voiceSettings[voiceId] || {
+        voice_id: 'vits',
+        model: speaker.toLowerCase().includes('nina') ? 'ar-diff-50k' : 'ar-diff-50k-male',
+        speed: 1.0,
+        pitch: 0.0
+      };
+      
+      // Prepare request body for Nari TTS API
+      const requestBody = {
+        text: text,
+        voice_id: voiceSetting.voice_id,
+        model: voiceSetting.model,
+        params: {
+          speed: voiceSetting.speed,
+          pitch: voiceSetting.pitch
+        }
+      };
+      
+      // Make API request to Nari TTS
+      const response = await axios({
+        method: 'post',
+        url: NARI_TTS_API_URL,
+        headers: {
+          'Accept': 'audio/wav',
+          'Content-Type': 'application/json',
+          'X-API-Key': process.env.NARI_API_KEY,
+          'User-Agent': 'StudyReels-Video-Generator/1.0'
+        },
+        data: requestBody,
+        responseType: 'arraybuffer',
+        timeout: 30000
+      });
+      
+      // Create temporary file path
+      const tempFilePath = path.join(__dirname, '../temp', `nari_${Date.now()}.wav`);
+      
+      // Write the audio buffer to a file
+      fs.writeFileSync(tempFilePath, response.data);
+      
+      console.log(`Nari TTS audio generated and saved to ${tempFilePath}`);
+      return tempFilePath;
     }
     
-    console.log(`Generating audio with FAL.ai for ${speaker} using voice ${voiceId}`);
-      // Map voice IDs to MiniMax voice settings with a wider variety
+    // If no API key, use local TTS implementation
+    console.log(`Generating audio with local Nari TTS for ${speaker} using voice ${voiceId}`);
+    
+    // Map voice IDs to local voice settings
     const voiceSettings = {
       'female-1': {
-        voice_id: 'Lively_Girl',
-        speed: 1.2,
-        pitch: 2
+        voice: 'en-us-female-1',
+        speed: 1.0,
+        pitch: 0.0
       },
       'female-2': {
-        voice_id: 'Sweet_Girl_2',
-        speed: 1.15,
-        pitch: -1
+        voice: 'en-us-female-2',
+        speed: 0.9,
+        pitch: 0.1
       },
       'female-3': {
-        voice_id: 'Calm_Woman',
-        speed: 1.25,
-        pitch: 1
+        voice: 'en-us-female-3',
+        speed: 1.1,
+        pitch: -0.1
       },
       'female-4': {
-        voice_id: 'Abbess',
-        speed: 1.2,
-        pitch: 0
+        voice: 'en-us-female-4',
+        speed: 1.0,
+        pitch: 0.2
       },
       'male-1': {
-        voice_id: 'Deep_Voice_Man',
-        speed: 1.15,
-        pitch: -2
+        voice: 'en-us-male-1',
+        speed: 1.0,
+        pitch: -0.2
       },
       'male-2': {
-        voice_id: 'Casual_Guy',
-        speed: 1.2,
-        pitch: 0
+        voice: 'en-us-male-2',
+        speed: 0.95,
+        pitch: 0.0
       },
       'male-3': {
-        voice_id: 'Elegant_Man',
-        speed: 1.1,
-        pitch: 1
+        voice: 'en-us-male-3',
+        speed: 1.05,
+        pitch: -0.1
       },
       'male-4': {
-        voice_id: 'Imposing_Manner',
-        speed: 1.15,
-        pitch: -1
+        voice: 'en-us-male-4',
+        speed: 1.0,
+        pitch: 0.1
       }
     };
-      // Get voice settings based on voiceId or use default
+    
+    // Get voice settings based on voiceId or use default
     const voiceSetting = voiceSettings[voiceId] || {
-      voice_id: speaker.toLowerCase().includes('nina') ? 'Lively_Girl' : 'Deep_Voice_Man',
-      speed: 1.2,
-      pitch: 0
+      voice: speaker.toLowerCase().includes('nina') ? 'en-us-female-1' : 'en-us-male-1',
+      speed: 1.0,
+      pitch: 0.0
     };
     
-    // Call the fal.ai API with voice settings
-    const result = await fal.subscribe("fal-ai/minimax/speech-02-turbo", {
-      input: {
-        text: text,
-        output_format: "hex",
-        voice_setting: {
-          voice_id: voiceSetting.voice_id,
-          speed: voiceSetting.speed,
-          pitch: voiceSetting.pitch,
-          vol: 1 // Default volume
-        }
-      },
-      logs: true,
-    });
+    // Create temporary file path
+    const tempFilePath = path.join(__dirname, '../temp', `nari_${Date.now()}.wav`);
     
-    if (!result.data || !result.data.audio || !result.data.audio.url) {
-      throw new Error('Failed to get audio URL from FAL.ai API');
+    // Use local TTS implementation based on platform
+    const { execSync } = await import('child_process');
+    
+    try {
+      if (process.platform === 'win32') {
+        // Enhanced Windows Speech Synthesis with voice selection
+        console.log('Using Windows Speech Synthesis with voice selection...');
+        
+        // Escape text for PowerShell
+        const escapedText = text
+          .replace(/"/g, '\\"')
+          .replace(/[\\]/g, '\\\\')
+          .replace(/'/g, "''")
+          .replace(/`/g, '``')
+          .replace(/\$/g, '`$')
+          .replace(/\r?\n/g, ' ');
+        
+        // PowerShell script to select voice and set rate/pitch
+        const powershellScript = `
+          Add-Type -AssemblyName System.Speech;
+          $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer;
+          $voices = $synth.GetInstalledVoices();
+          $selectedVoice = $voices | Where-Object { $_.VoiceInfo.Name -like "*${voiceSetting.voice.includes('female') ? 'female' : 'male'}*" } | Select-Object -First 1;
+          if ($selectedVoice) { $synth.SelectVoice($selectedVoice.VoiceInfo.Name); }
+          $synth.Rate = ${Math.round((voiceSetting.speed - 1) * 10)};
+          $synth.SetOutputToWaveFile('${tempFilePath.replace(/\\/g, '\\\\')}');
+          $synth.Speak('${escapedText}');
+          $synth.Dispose();
+        `;
+        
+        execSync(`powershell -c "${powershellScript}"`);
+        
+      } else if (process.platform === 'darwin') {
+        // Enhanced macOS with voice selection
+        console.log('Using macOS Say command with voice selection...');
+        
+        // Map to macOS voices
+        const macVoices = {
+          'female-1': 'Samantha',
+          'female-2': 'Victoria',
+          'female-3': 'Allison',
+          'female-4': 'Susan',
+          'male-1': 'Alex',
+          'male-2': 'Tom',
+          'male-3': 'Daniel',
+          'male-4': 'Fred'
+        };
+        
+        const selectedVoice = macVoices[voiceId] || 'Alex';
+        const rate = Math.round(voiceSetting.speed * 200); // Convert to words per minute
+        
+        execSync(`say -v "${selectedVoice}" -r ${rate} -o "${tempFilePath}" "${text.replace(/"/g, '\\"')}"`);
+        
+      } else {
+        // Enhanced Linux with espeak-ng
+        console.log('Using Linux eSpeak-ng with voice selection...');
+        
+        try {
+          // Check if espeak-ng is available (better than espeak)
+          execSync('which espeak-ng', { stdio: 'ignore' });
+          
+          // Map to espeak voices
+          const espeakVoice = voiceId.includes('female') ? 'en-us+f3' : 'en-us+m3';
+          const speed = Math.round(voiceSetting.speed * 175);
+          const pitch = Math.round(50 + (voiceSetting.pitch * 25));
+          
+          execSync(`espeak-ng -v "${espeakVoice}" -s ${speed} -p ${pitch} -a 200 -g 10 "${text.replace(/"/g, '\\"')}" -w "${tempFilePath}"`);
+          
+        } catch (espeakNgError) {
+          // Fallback to regular espeak
+          try {
+            execSync('which espeak', { stdio: 'ignore' });
+            console.log('Using Linux eSpeak...');
+            
+            const espeakVoice = voiceId.includes('female') ? 'en-us+f3' : 'en-us+m3';
+            const speed = Math.round(voiceSetting.speed * 175);
+            const pitch = Math.round(50 + (voiceSetting.pitch * 25));
+            
+            execSync(`espeak -v "${espeakVoice}" -s ${speed} -p ${pitch} -a 200 -g 10 "${text.replace(/"/g, '\\"')}" -w "${tempFilePath}"`);
+            
+          } catch (espeakError) {
+            throw new Error('Neither espeak-ng nor espeak found on Linux system');
+          }
+        }
+      }
+      
+      // Verify the file was created
+      if (!fs.existsSync(tempFilePath) || fs.statSync(tempFilePath).size === 0) {
+        throw new Error('Audio file was not created or is empty');
+      }
+      
+      console.log(`Local Nari TTS audio generated and saved to ${tempFilePath}`);
+      return tempFilePath;
+      
+    } catch (execError) {
+      console.error(`Local TTS execution error: ${execError.message}`);
+      throw execError;
     }
     
-    console.log(`FAL.ai audio generated for ${speaker} with voice ${voiceSetting.voice_id}, duration: ${result.data.duration_ms}ms`);
-    return result.data.audio.url;
   } catch (error) {
-    console.error(`Error generating FAL.ai audio: ${error.message}`);
+    console.error(`Error generating Nari TTS audio: ${error.message}`);
+    if (error.response) {
+      console.error('Nari TTS API response:', error.response.status, error.response.data);
+    }
     throw error;
   }
 }
@@ -280,24 +457,34 @@ export const generateAudio = async (req, res) => {
       'male-3': { name: 'en/vctk_low/p256', language: 'en' },    // Additional VCTK male voice
       'male-4': { name: 'en/vctk_low/p261', language: 'en' }     // Additional VCTK male voice
     };
-        // Check if TTS APIs are available - prioritize FAL.ai over ElevenLabs
-    let useFalAi = false;
+        // Check if TTS APIs are available - prioritize Nari TTS over ElevenLabs
+    let useNariTTS = false;
     let useElevenLabs = false;
     
-    // First check FAL.ai availability (primary choice)
-    if (process.env.FAL_KEY) {
+    // First check Nari TTS availability (primary choice)
+    if (process.env.NARI_API_KEY) {
       try {
-        // FAL.ai doesn't have a simple ping endpoint, so we'll assume it's available if the key is set
-        useFalAi = true;
-        console.log('FAL.ai API key found - using FAL.ai for text-to-speech');
-      } catch (falCheckError) {
-        console.warn(`FAL.ai service check failed: ${falCheckError.message}`);
-        useFalAi = false;
+        // Test Nari TTS API connection
+        await axios({
+          method: 'get',
+          url: `${NARI_TTS_API_URL.replace('/tts', '/voices')}`,
+          headers: {
+            'X-API-Key': process.env.NARI_API_KEY,
+            'Content-Type': 'application/json'
+          },
+          timeout: 5000 // 5 second timeout
+        });
+        
+        useNariTTS = true;
+        console.log('Nari TTS API key found and verified - using Nari TTS for text-to-speech');
+      } catch (nariCheckError) {
+        console.warn(`Nari TTS service check failed: ${nariCheckError.message}`);
+        useNariTTS = false;
       }
     }
     
-    // Only check ElevenLabs if FAL.ai is not available
-    if (!useFalAi && process.env.ELEVENLABS_API_KEY) {
+    // Only check ElevenLabs if Nari TTS is not available
+    if (!useNariTTS && process.env.ELEVENLABS_API_KEY) {
       try {
         // Do a quick check if ElevenLabs is working
         await axios({
@@ -319,8 +506,8 @@ export const generateAudio = async (req, res) => {
       }
     }
     
-    if (useFalAi) {
-      console.log('Using FAL.ai API for text-to-speech');
+    if (useNariTTS) {
+      console.log('Using Nari TTS API for text-to-speech');
     } else if (useElevenLabs) {
       console.log('Using ElevenLabs API for text-to-speech');
     } else {
@@ -330,9 +517,9 @@ export const generateAudio = async (req, res) => {
     // Mozilla TTS API endpoint - using their public service or from env
     const mozillaTTSEndpoint = process.env.MOZILLA_TTS_ENDPOINT || 'https://tts.mozilla.org/api/v1/tts';
     
-    // Check if Mozilla TTS service is available (only if not using FAL.ai)
+    // Check if Mozilla TTS service is available (only if not using Nari TTS)
     let isMozillaTTSAvailable = false;
-    if (!useFalAi) {
+    if (!useNariTTS) {
       try {
         const mozillaTTSStatusEndpoint = mozillaTTSEndpoint.replace('/tts', '/status');
         const response = await axios.get(mozillaTTSStatusEndpoint, { timeout: 5000 });
@@ -383,16 +570,19 @@ export const generateAudio = async (req, res) => {
       try {
         console.log(`Generating audio for line ${index + 1}`);
         
-        if (useFalAi) {          
+        if (useNariTTS) {          
           try {
-            // Generate audio using FAL.ai with the specific voice ID
-            const audioUrl = await generateFalAudio(line.text, line.speaker, voiceId);
+            // Generate audio using Nari TTS with the specific voice ID
+            const audioFilePath = await generateNariAudio(line.text, line.speaker, voiceId);
             
-            // Download the audio file
-            await downloadAudio(audioUrl, outputFile);
-            console.log(`FAL.ai audio downloaded for line ${index + 1}`);
-          } catch (falError) {
-            console.error(`FAL.ai API error: ${falError.message}. Trying fallbacks...`);
+            // Copy the audio file to our expected output path
+            fs.copyFileSync(audioFilePath, outputFile);
+            
+            // Remove the temporary file
+            fs.unlinkSync(audioFilePath);
+            console.log(`Nari TTS audio generated for line ${index + 1}`);
+          } catch (nariError) {
+            console.error(`Nari TTS API error: ${nariError.message}. Trying fallbacks...`);
             
             // Try ElevenLabs if available as fallback
             if (useElevenLabs) {
