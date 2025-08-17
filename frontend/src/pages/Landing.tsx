@@ -43,7 +43,7 @@ export const Landing = () => {
             </div>
             <div className="flex items-center gap-4">
               <Button 
-                onClick={() => navigate('/create')}
+                onClick={() => navigate('/maintenance')}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-sm sm:text-base py-1 px-3 sm:px-4"
               >
                 Get Started
@@ -99,7 +99,7 @@ export const Landing = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >              <Button 
-                onClick={() => navigate('/create')}
+                onClick={() => navigate('/maintenance')}
                 size="lg"
                 className="text-base sm:text-lg py-5 sm:py-6 px-8 sm:px-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-xl shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105"
               >

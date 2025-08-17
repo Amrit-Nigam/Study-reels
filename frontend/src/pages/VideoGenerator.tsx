@@ -306,6 +306,22 @@ export const VideoGenerator = () => {
     }
   };
 
+  const handleNext = () => {
+    if (currentStep === 0) {
+      handleGenerateScript();
+    } else if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      handleGenerateVideo();
+    }
+  };
+  
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+  
   const handleReset = () => {
     // Reset all state to initial values
     setTopic('');
@@ -325,6 +341,244 @@ export const VideoGenerator = () => {
     
     toast.info('Ready to create a new video!');
   };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <div className="space-y-4">
+            <label className="block text-lg font-medium text-white">
+              Enter a topic for your video
+            </label>
+            <input
+              type="text"
+              value={topic}
+              onChange={handleTopicChange}
+              placeholder="Enter your topic here..."
+              className="w-full p-4 border border-slate-700/50 rounded-xl bg-black/30 text-white backdrop-blur-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+              disabled={loading}
+            />
+          </div>
+        );
+        
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-lg font-medium mb-2 text-white">
+                Voice for Nina
+              </label>
+              <select
+                value={voice1}
+                onChange={handleVoice1Change}
+                className="w-full p-4 border border-slate-700/50 rounded-xl bg-black/30 text-white backdrop-blur-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                disabled={loading}
+              >
+                {voiceOptions
+                  .filter((v: VoiceOption) => v.gender === 'female')
+                  .map((voice: VoiceOption) => (
+                    <option key={voice.id} value={voice.id}>
+                      {voice.name} - {voice.description}
+                    </option>
+                  ))
+                }
+              </select>
+              {isVoiceApiAvailable && (
+                <p className="mt-2 text-sm text-purple-300">
+
+                </p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-lg font-medium mb-2 text-white">
+                Voice for Jay
+              </label>
+              <select
+                value={voice2}
+                onChange={handleVoice2Change}
+                className="w-full p-4 border border-slate-700/50 rounded-xl bg-black/30 text-white backdrop-blur-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                disabled={loading}
+              >
+                {voiceOptions
+                  .filter((v: VoiceOption) => v.gender === 'male')
+                  .map((voice: VoiceOption) => (
+                    <option key={voice.id} value={voice.id}>
+                      {voice.name} - {voice.description}
+                    </option>
+                  ))
+                }
+              </select>
+              {isVoiceApiAvailable && (
+                <p className="mt-2 text-sm text-purple-300">
+
+                </p>
+              )}
+            </div>
+            
+            {dialogue.length > 0 && (
+              <div className="mt-6 p-6 border border-slate-700/50 rounded-xl bg-black/40 backdrop-blur-md">
+                <h3 className="font-semibold mb-4 text-white text-lg">Generated Dialogue:</h3>
+                <div className="space-y-3">
+                  {dialogue.map((line, index) => (
+                    <p key={index} className="text-slate-200">
+                      <span className="font-bold text-purple-400">{line.speaker}:</span> {line.text}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+        
+      case 2:
+        return (
+          <div className="space-y-4">
+            <label className="block text-lg font-medium text-white mb-4">
+              Select gameplay video
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {AVAILABLE_VIDEOS.map((video) => (
+                <label
+                  key={video.id}
+                  className={`cursor-pointer border-2 ${
+                    selectedVideo === video.file ? 'border-purple-500' : 'border-slate-700/50'
+                  } rounded-xl p-4 flex flex-col items-center bg-black/30 backdrop-blur-sm hover:bg-black/40 transition-all duration-300 transform ${
+                    selectedVideo === video.file ? 'scale-105' : 'hover:scale-102'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="videoSelection"
+                    value={video.file}
+                    checked={selectedVideo === video.file}
+                    onChange={() => setSelectedVideo(video.file)}
+                    className="sr-only"
+                  />
+                  <div className="relative w-full aspect-video rounded-lg mb-3 overflow-hidden shadow-lg">
+                    <img 
+                      src={video.thumbnail} 
+                      alt={`${video.name} thumbnail`}
+                      className="w-full h-full object-cover"
+                    />
+                    {selectedVideo === video.file && (
+                      <div className="absolute inset-0 bg-purple-500/20 flex items-center justify-center">
+                        <div className="rounded-full bg-purple-500 w-8 h-8 flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <span className={`mt-1 font-medium text-lg ${
+                    selectedVideo === video.file ? 'text-purple-400' : 'text-white'
+                  }`}>
+                    {video.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="p-6 border border-slate-700/50 rounded-xl bg-black/40 backdrop-blur-md">
+              <h3 className="font-semibold mb-4 text-white text-lg">Summary:</h3>
+              <div className="space-y-3">
+                <p className="text-slate-200">
+                  <span className="font-semibold text-purple-400">Topic:</span> {topic}
+                </p>
+                <p className="text-slate-200">
+                  <span className="font-semibold text-purple-400">Voice for Nina:</span> {voiceOptions.find((v: VoiceOption) => v.id === voice1)?.name}
+                </p>
+                <p className="text-slate-200">
+                  <span className="font-semibold text-purple-400">Voice for Jay:</span> {voiceOptions.find((v: VoiceOption) => v.id === voice2)?.name}
+                </p>
+                <p className="text-slate-200">
+                  <span className="font-semibold text-purple-400">Gameplay video:</span> {AVAILABLE_VIDEOS.find(v => v.file === selectedVideo)?.name}
+                </p>
+              </div>
+            </div>
+            
+            {/* Progress indicators for video generation */}
+            {loading && (
+              <div className="mt-6 p-6 border border-slate-700/50 rounded-xl bg-black/40 backdrop-blur-md">
+                <h3 className="font-semibold mb-4 text-white text-lg">
+                  Generating your video...
+                </h3>
+                
+                {/* Upload progress section */}
+                <div className="mb-6">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm text-slate-300">Uploading video</span>
+                    <span className="text-sm font-medium text-purple-300">{uploadProgress}%</span>
+                  </div>
+                  <Progress value={uploadProgress} className="h-2 bg-slate-700/50" />
+                </div>
+                
+                {/* Processing progress section - only show after upload complete */}
+                {uploadProgress === 100 && (
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-slate-300">{processingStage}</span>
+                      <span className="text-sm font-medium text-purple-300">{Math.round(processingProgress)}%</span>
+                    </div>
+                    <Progress value={processingProgress} className="h-2 bg-slate-700/50" />
+                    {/* Fun loading messages */}
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-slate-400 italic animate-pulse">
+                        {processingProgress < 30 && "AI is working its magic..."}
+                        {processingProgress >= 30 && processingProgress < 60 && "Almost there, adding the special sauce..."}
+                        {processingProgress >= 60 && processingProgress < 90 && "Putting on the finishing touches..."}
+                        {processingProgress >= 90 && "Just a moment more for perfection..."}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {videoUrl && (
+              <div className="mt-8">
+                <h3 className="font-semibold mb-4 text-white text-lg">Generated Video:</h3>
+                <div className="aspect-video bg-black/50 rounded-xl overflow-hidden shadow-2xl border border-slate-700/50">
+                  <video
+                    src={videoUrl}
+                    controls
+                    className="w-full h-full"
+                    poster="/placeholder-video.png"
+                  />
+                </div>
+                
+                <div className="mt-6 flex flex-wrap gap-4 justify-center">
+                    <a
+                    href={videoUrl}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 font-medium shadow-lg hover:shadow-green-500/25"
+                    >
+                    Download Video
+                    </a>
+                  <button
+                    onClick={handleReset}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 font-medium shadow-lg hover:shadow-purple-500/25"
+                  >
+                    Create New Video
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
   
   return (
     <div className="relative min-h-screen">
@@ -333,45 +587,36 @@ export const VideoGenerator = () => {
         <BeamsBackground intensity="strong" className="w-full h-full">
         </BeamsBackground>
       </div>
-      
-      {/* Gradient overlay */}
-      <div className="fixed inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/30 z-[1]"></div>
-
-      {/* Upgrade Notice Banner */}
-      <div className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-orange-500 to-red-500 text-white">
-        <div className="container max-w-6xl mx-auto px-4 py-2 text-center">
-          <p className="text-sm font-medium animate-pulse">
-            🚀 Upgrading StudyReels! App temporarily closed for improvements. Please visit again soon!
-          </p>
-        </div>
-      </div>
-
-      {/* Rest of your component remains the same */}
+        {/* Rest of your component remains the same */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 max-w-4xl pt-16">
-          {/* Upgrade Notice Card */}
- 
-
-          <div className="text-center mb-4 sm:mb-8 opacity-50">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 max-w-4xl">
+          <div className="text-center mb-4 sm:mb-8">
+            {/* <Badge variant="secondary" className="mb-4 bg-purple-900/30 text-purple-300 border-purple-500/30 backdrop-blur-sm">
+              🧠 AI-Powered Video Creator
+            </Badge> */}
             <div className="mb-4 p-3"></div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 flex items-center justify-center gap-2">
-              <span className="bg-gradient-to-r from-white/60 via-purple-200/60 to-blue-200/60 bg-clip-text text-transparent">Study</span>
-              <span className="px-6 py-2 bg-orange-500/60 text-black rounded-lg">Reels</span>
-            </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 flex items-center justify-center gap-2">
+              <span className="bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">Study</span>
+              <span className="px-6 py-2 bg-blue-500/90 text-black rounded-lg">Reels</span>
+            </h1>
+            <p className="text-slate-300 max-w-2xl mx-auto">
               Transform any topic into viral-worthy content with AI voices and gameplay backgrounds
-              <br />
-              <span className="text-orange-300 text-sm">(Coming back soon after upgrade!)</span>
             </p>
           </div>
           
-          {/* Progress Indicator - Disabled */}
-          <div className="mb-8 opacity-40">
+          {/* Progress Indicator */}
+          <div className="mb-8">
             <div className="flex justify-between mb-3">
               {steps.map((step, index) => (
                 <div
                   key={index}
-                  className="flex-1 text-center text-slate-500"
+                  className={`flex-1 text-center ${
+                    index < currentStep 
+                      ? 'text-green-400'
+                      : index === currentStep 
+                      ? 'text-purple-400 font-medium'
+                      : 'text-slate-500'
+                  }`}
                 >
                   {step}
                 </div>
@@ -379,47 +624,46 @@ export const VideoGenerator = () => {
             </div>
             <div className="w-full bg-slate-700/50 backdrop-blur-sm rounded-full h-2.5">
               <div
-                className="bg-gradient-to-r from-gray-600 to-gray-500 h-2.5 rounded-full"
-                style={{ width: '0%' }}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 h-2.5 rounded-full transition-all duration-500 ease-in-out"
+                style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
               ></div>
             </div>
           </div>
           
-          {/* Disabled Form Preview */}
-          <Card className="bg-black/10 border-slate-700/30 backdrop-blur-md shadow-2xl mb-8 opacity-40">
+          {/* Step Content */}
+          <Card className="bg-black/20 border-slate-700/50 backdrop-blur-md shadow-2xl mb-8">
             <CardContent className="p-6 md:p-8">
-              <div className="space-y-4">
-                <label className="block text-lg font-medium text-gray-400">
-                  Enter a topic for your video (Currently Disabled)
-                </label>
-                <input
-                  type="text"
-                  placeholder="This feature is temporarily unavailable..."
-                  className="w-full p-4 border border-slate-700/30 rounded-xl bg-black/20 text-gray-500 backdrop-blur-sm cursor-not-allowed"
-                  disabled
-                />
-                <p className="text-slate-500 text-sm text-center">
-                  All features will be available after our upgrade is complete!
-                </p>
-              </div>
+              {renderStepContent()}
             </CardContent>
           </Card>
             
           {/* Navigation Buttons */}
           <div className="flex justify-between">
             <Button
-              disabled
+              onClick={handleBack}
+              disabled={currentStep === 0 || loading}
               variant="outline"
-              className="bg-gray-600 border-gray-500 text-gray-300 cursor-not-allowed"
+              className="transition-all duration-200 bg-black/30 border-slate-700/50 text-white hover:bg-black/50 hover:text-purple-300"
             >
               Back
             </Button>
             
             <Button
-              disabled
-              className="bg-gray-600 text-gray-300 cursor-not-allowed"
+              onClick={handleNext}
+              disabled={loading}
+              className="transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white transform hover:scale-105"
             >
-              Temporarily Unavailable
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                currentStep === steps.length - 1 ? 'Generate Video' : 'Next'
+              )}
             </Button>
           </div>
         </div>
@@ -437,9 +681,6 @@ export const VideoGenerator = () => {
                 >
                   Amrit-Nigam
                 </a>
-            </p>
-            <p className="text-slate-500 text-xs mt-2">
-              Currently upgrading for a better experience 🚀
             </p>
           </div>
         </footer>
