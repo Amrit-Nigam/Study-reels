@@ -587,36 +587,45 @@ export const VideoGenerator = () => {
         <BeamsBackground intensity="strong" className="w-full h-full">
         </BeamsBackground>
       </div>
-        {/* Rest of your component remains the same */}
+      
+      {/* Gradient overlay */}
+      <div className="fixed inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/30 z-[1]"></div>
+
+      {/* Upgrade Notice Banner */}
+      <div className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-orange-500 to-red-500 text-white">
+        <div className="container max-w-6xl mx-auto px-4 py-2 text-center">
+          <p className="text-sm font-medium animate-pulse">
+            🚀 Upgrading StudyReels! App temporarily closed for improvements. Please visit again soon!
+          </p>
+        </div>
+      </div>
+
+      {/* Rest of your component remains the same */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 max-w-4xl">
-          <div className="text-center mb-4 sm:mb-8">
-            {/* <Badge variant="secondary" className="mb-4 bg-purple-900/30 text-purple-300 border-purple-500/30 backdrop-blur-sm">
-              🧠 AI-Powered Video Creator
-            </Badge> */}
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 max-w-4xl pt-16">
+          {/* Upgrade Notice Card */}
+ 
+
+          <div className="text-center mb-4 sm:mb-8 opacity-50">
             <div className="mb-4 p-3"></div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 flex items-center justify-center gap-2">
-              <span className="bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">Study</span>
-              <span className="px-6 py-2 bg-blue-500/90 text-black rounded-lg">Reels</span>
-            </h1>
-            <p className="text-slate-300 max-w-2xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 flex items-center justify-center gap-2">
+              <span className="bg-gradient-to-r from-white/60 via-purple-200/60 to-blue-200/60 bg-clip-text text-transparent">Study</span>
+              <span className="px-6 py-2 bg-orange-500/60 text-black rounded-lg">Reels</span>
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
               Transform any topic into viral-worthy content with AI voices and gameplay backgrounds
+              <br />
+              <span className="text-orange-300 text-sm">(Coming back soon after upgrade!)</span>
             </p>
           </div>
           
-          {/* Progress Indicator */}
-          <div className="mb-8">
+          {/* Progress Indicator - Disabled */}
+          <div className="mb-8 opacity-40">
             <div className="flex justify-between mb-3">
               {steps.map((step, index) => (
                 <div
                   key={index}
-                  className={`flex-1 text-center ${
-                    index < currentStep 
-                      ? 'text-green-400'
-                      : index === currentStep 
-                      ? 'text-purple-400 font-medium'
-                      : 'text-slate-500'
-                  }`}
+                  className="flex-1 text-center text-slate-500"
                 >
                   {step}
                 </div>
@@ -624,16 +633,29 @@ export const VideoGenerator = () => {
             </div>
             <div className="w-full bg-slate-700/50 backdrop-blur-sm rounded-full h-2.5">
               <div
-                className="bg-gradient-to-r from-purple-600 to-blue-600 h-2.5 rounded-full transition-all duration-500 ease-in-out"
-                style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+                className="bg-gradient-to-r from-gray-600 to-gray-500 h-2.5 rounded-full"
+                style={{ width: '0%' }}
               ></div>
             </div>
           </div>
           
-          {/* Step Content */}
-          <Card className="bg-black/20 border-slate-700/50 backdrop-blur-md shadow-2xl mb-8">
+          {/* Disabled Form Preview */}
+          <Card className="bg-black/10 border-slate-700/30 backdrop-blur-md shadow-2xl mb-8 opacity-40">
             <CardContent className="p-6 md:p-8">
-              {renderStepContent()}
+              <div className="space-y-4">
+                <label className="block text-lg font-medium text-gray-400">
+                  Enter a topic for your video (Currently Disabled)
+                </label>
+                <input
+                  type="text"
+                  placeholder="This feature is temporarily unavailable..."
+                  className="w-full p-4 border border-slate-700/30 rounded-xl bg-black/20 text-gray-500 backdrop-blur-sm cursor-not-allowed"
+                  disabled
+                />
+                <p className="text-slate-500 text-sm text-center">
+                  All features will be available after our upgrade is complete!
+                </p>
+              </div>
             </CardContent>
           </Card>
             
@@ -649,21 +671,10 @@ export const VideoGenerator = () => {
             </Button>
             
             <Button
-              onClick={handleNext}
-              disabled={loading}
-              className="transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white transform hover:scale-105"
+              disabled
+              className="bg-gray-600 text-gray-300 cursor-not-allowed"
             >
-              {loading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : (
-                currentStep === steps.length - 1 ? 'Generate Video' : 'Next'
-              )}
+              Temporarily Unavailable
             </Button>
           </div>
         </div>
@@ -681,6 +692,9 @@ export const VideoGenerator = () => {
                 >
                   Amrit-Nigam
                 </a>
+            </p>
+            <p className="text-slate-500 text-xs mt-2">
+              Currently upgrading for a better experience 🚀
             </p>
           </div>
         </footer>
